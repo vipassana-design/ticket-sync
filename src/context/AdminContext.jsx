@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react';
-import { initialCompanies, initialAllUsers } from '../data/mockData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { initialAllUsers } from '../data/mockData';
+import { supabase } from '../config/supabase';
 
 const AdminContext = createContext(null);
 
@@ -8,7 +9,37 @@ let nextUserId = 100;
 
 export function AdminProvider({ children, currentUser }) {
     // DB table: companies(id, name, logo_url, status, created_at)
-    const [companies, setCompanies] = useState(initialCompanies);
+    const [companies, setCompanies] = useState([]);
+    const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+    useEffect(() => {
+        if (currentUser?.role === 'super_admin') {
+            fetchCompanies();
+        } else {
+            setLoadingCompanies(false);
+        }
+    }, [currentUser]);
+
+    const fetchCompanies = async () => {
+        setLoadingCompanies(true);
+        const { data, error } = await supabase
+            .from('companies')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            const mapped = data.map(c => ({
+                id: c.id,
+                name: c.name,
+                logoUrl: c.logo_url,
+                status: c.status,
+                createdAt: new Date(c.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+                rawTs: new Date(c.created_at).getTime()
+            }));
+            setCompanies(mapped);
+        }
+        setLoadingCompanies(false);
+    };
 
     // DB table: profiles(id, email, name, role, company_id, status, ...)
     const [allUsers, setAllUsers] = useState(initialAllUsers);
@@ -97,6 +128,7 @@ export function AdminProvider({ children, currentUser }) {
     return (
         <AdminContext.Provider value={{
             companies,
+            loadingCompanies,
             allUsers,
             currentUser,                    // DB: auth.users + profiles
             addCompany,
@@ -108,6 +140,7 @@ export function AdminProvider({ children, currentUser }) {
             getAgentsByCompany,
             getClientsByCompany,
             getUserCountByCompany,
+            fetchCompanies,
         }}>
             {children}
         </AdminContext.Provider>

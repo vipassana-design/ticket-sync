@@ -250,7 +250,7 @@ function CompanyRow({ company }) {
 // ─── SuperAdminDashboard ──────────────────────────────────────────────────────
 // DB: SELECT * FROM companies ORDER BY created_at DESC
 export default function SuperAdminDashboard() {
-    const { companies } = useAdmin();
+    const { companies, loadingCompanies } = useAdmin();
     const [showModal, setShowModal] = useState(false);
     const [search, setSearch] = useState('');
 
@@ -326,11 +326,33 @@ export default function SuperAdminDashboard() {
                 </div>
 
                 {/* Rows */}
-                {filtered.length === 0 ? (
+                {loadingCompanies ? (
                     <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-                        <span className="material-symbols-outlined text-slate-700 text-5xl select-none">domain_disabled</span>
-                        <p className="text-sm font-bold text-slate-500">No se encontraron empresas</p>
-                        {search && <p className="text-xs text-slate-600">Probá con otro término de búsqueda</p>}
+                        <span className="material-symbols-outlined text-primary text-4xl select-none animate-spin">progress_activity</span>
+                        <p className="text-sm font-bold text-slate-400 animate-pulse">Cargando empresas registradas...</p>
+                    </div>
+                ) : companies.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+                        <div className="size-16 rounded-2xl bg-slate-800/50 border border-slate-700 flex items-center justify-center mb-2">
+                            <span className="material-symbols-outlined text-slate-500 text-3xl select-none">domain_disabled</span>
+                        </div>
+                        <div>
+                            <p className="text-base font-bold text-white mb-1">Aún no hay empresas en el sistema</p>
+                            <p className="text-xs text-slate-400 max-w-sm mx-auto">Comienza agregando la primera empresa u organización para empezar a gestionar sus tickets y agentes.</p>
+                        </div>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="mt-2 flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-5 py-2.5 text-sm font-bold border border-slate-600 transition-all active:scale-95"
+                        >
+                            <span className="material-symbols-outlined text-base">add_business</span>
+                            Crear primera empresa
+                        </button>
+                    </div>
+                ) : filtered.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                        <span className="material-symbols-outlined text-slate-700 text-5xl select-none">search_off</span>
+                        <p className="text-sm font-bold text-slate-500">No se encontraron empresas con esa búsqueda</p>
+                        <p className="text-xs text-slate-600">Probá con otro término de búsqueda</p>
                     </div>
                 ) : (
                     filtered.map(company => (

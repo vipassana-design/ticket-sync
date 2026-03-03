@@ -70,7 +70,7 @@ export default function LoginPage({ onLogin, loginError = '' }) {
                             {[
                                 { icon: 'confirmation_number', text: 'Gestión de tickets en tiempo real' },
                                 { icon: 'analytics', text: 'Reportes y analytics del equipo' },
-                                { icon: 'shield', text: 'Acceso seguro con MFA' },
+                                { icon: 'shield', text: 'Historial centralizado de consultas' },
                             ].map(({ icon, text }) => (
                                 <div key={text} className="flex items-center gap-3">
                                     <div className="size-8 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
