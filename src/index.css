@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Public Sans', sans-serif;
+  }
+
+  body {
+    @apply h-full bg-background-light text-slate-900 overflow-hidden;
+  }
+
+  #root {
+    @apply h-full;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .chat-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 99px;
+  }
+
+  .ms-icon {
+    font-family: 'Material Symbols Outlined';
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+
+  .ms-icon-filled {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+}
+
+/* ── TipTap WYSIWYG — editor input area ──────────────────────────────────── */
+.wysiwyg-input {
+  cursor: text;
+}
+
+/* Placeholder via TipTap/Placeholder extension */
+.wysiwyg-input p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #94a3b8;
+  pointer-events: none;
+  height: 0;
+}
+
+/* ── TipTap WYSIWYG — rendered content in chat bubbles ───────────────────── */
+.wysiwyg-content p {
+  margin-bottom: 0.25rem;
+  line-height: 1.6;
+}
+
+.wysiwyg-content p:last-child {
+  margin-bottom: 0;
+}
+
+.wysiwyg-content strong {
+  font-weight: 700;
+}
+
+.wysiwyg-content em {
+  font-style: italic;
+}
+
+.wysiwyg-content s {
+  text-decoration: line-through;
+}
+
+.wysiwyg-content code {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: 0.8em;
+}
+
+.wysiwyg-content blockquote {
+  border-left: 3px solid #94a3b8;
+  padding-left: 0.75rem;
+  margin: 0.25rem 0;
+  color: #64748b;
+  font-style: italic;
+}
+
+.wysiwyg-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.wysiwyg-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin: 0.25rem 0;
+}
+
+.wysiwyg-content li+li {
+  margin-top: 2px;
+}
+
+.wysiwyg-content a {
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* White-text context: agent bubble & internal note */
+.bg-sidebar-dark .wysiwyg-content code {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.bg-sidebar-dark .wysiwyg-content blockquote {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Toast slide-in animation ─────────────────────────────────────────────── */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

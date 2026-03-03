@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .bg-pattern {
+            background-color: #f8f6f6;
+            background-image: radial-gradient(at 0% 0%, rgba(236, 91, 19, 0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 91, 19, 0.05) 0px, transparent 50%);
+        }
+
+        /* Subtle flowing shape effect via gradient */
+        .flowing-shapes {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(236, 91, 19, 0.03) 0%, rgba(236, 91, 19, 0) 100%);
+            border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+        }
+    </style>
+</head>
+
+<body
+    class="font-display bg-background-light dark:bg-background-dark min-h-screen relative flex items-center justify-center overflow-x-hidden">
+    <!-- Background Decoration -->
+    <div class="flowing-shapes bg-pattern">
+        <div class="shape w-[600px] h-[600px] -top-20 -left-20"></div>
+        <div class="shape w-[500px] h-[500px] bottom-0 -right-20"></div>
+    </div>
+    <div class="w-full max-w-5xl px-6 py-12 flex flex-col items-center">
+        <!-- Logo Header -->
+        <div class="mb-10 flex items-center gap-3">
+            <div class="bg-primary p-2 rounded-lg text-white shadow-lg">
+                <span class="material-symbols-outlined text-3xl">hub</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Ticket <span
+                    class="text-primary">Sync</span></h1>
+        </div>
+        <!-- Main Glass Card -->
+        <div class="glass-card w-full max-w-lg rounded-xl shadow-2xl p-8 md:p-12">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Support Portal</h2>
+                <p class="text-slate-600 dark:text-slate-400">Secure enterprise access for teams and partners</p>
+            </div>
+            <!-- Role Selection -->
+            <div class="mb-10">
+                <label
+                    class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 text-center uppercase tracking-widest">Select
+                    Access Role</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <button
+                        class="group relative flex flex-col items-center justify-center p-6 rounded-xl border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-all">
+                        <span class="material-symbols-outlined text-primary text-4xl mb-2">support_agent</span>
+                        <span class="font-bold text-slate-900 dark:text-slate-100">Agent</span>
+                        <div class="absolute top-2 right-2">
+                            <span class="material-symbols-outlined text-primary text-sm">check_circle</span>
+                        </div>
+                    </button>
+                    <button
+                        class="group flex flex-col items-center justify-center p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-primary/50 transition-all">
+                        <span
+                            class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors text-4xl mb-2">business</span>
+                        <span
+                            class="font-bold text-slate-500 dark:text-slate-400 group-hover:text-slate-900">Client</span>
+                    </button>
+                </div>
+            </div>
+            <!-- Login Form -->
+            <form class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                        for="email">Corporate Email</label>
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
+                        <input
+                            class="w-full pl-10 pr-4 py-3 bg-white/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            id="email" placeholder="name@ticketsync.com" type="email" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+                        for="password">Password</label>
+                    <div class="relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">lock</span>
+                        <input
+                            class="w-full pl-10 pr-4 py-3 bg-white/50 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                            id="password" placeholder="••••••••" type="password" />
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input class="rounded border-slate-300 text-primary focus:ring-primary" type="checkbox" />
+                        <span class="text-sm text-slate-600 dark:text-slate-400">Remember session</span>
+                    </label>
+                    <a class="text-sm font-semibold text-primary hover:underline" href="#">Forgot password?</a>
+                </div>
+                <button
+                    class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+                    type="submit">
+                    Secure Sign In
+                    <span class="material-symbols-outlined">login</span>
+                </button>
+            </form>
+            <!-- Security Footer -->
+            <div class="mt-10 pt-8 border-t border-slate-200/50 dark:border-slate-700/50">
+                <div class="flex items-center justify-center gap-6 text-slate-400">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl">verified_user</span>
+                        <span class="text-xs font-semibold tracking-wider uppercase">MFA Required</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl">encrypted</span>
+                        <span class="text-xs font-semibold tracking-wider uppercase">AES-256 Encrypted</span>
+                    </div>
+                </div>
+                <p class="mt-6 text-center text-xs text-slate-400">
+                    Sistema propietario de Ticket Sync. El acceso no autorizado está prohibido y monitoreado.
+                </p>
+            </div>
+        </div>
+        <!-- Footer Links -->
+        <div class="mt-8 flex gap-8">
+            <a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Privacy Policy</a>
+            <a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Support Center</a>
+            <a class="text-sm text-slate-500 hover:text-primary transition-colors" href="#">Global Network Status</a>
+        </div>
+    </div>
+</body>
+
+</html>
