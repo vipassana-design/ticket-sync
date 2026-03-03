@@ -134,6 +134,21 @@ export default function App() {
             return;
         }
 
+        // Consultar el rol real en la base de datos usando el ID autenticado
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+
+        if (profileError || !profile) {
+            setLoginError('Hubo un problema obteniendo tu perfil en la base de datos.');
+            await supabase.auth.signOut();
+            return;
+        }
+
+        const realRole = profile.role;
+
         // Recuperar perfil desde mockData (Aislamiento para mantener UI funcionando)
         const user = DEMO_USERS.find(
             u => u.email.toLowerCase() === email.toLowerCase()
@@ -144,24 +159,26 @@ export default function App() {
             await supabase.auth.signOut();
             return;
         }
-        // Role check (agent selector picks 'agent' but admin_empresa is also an agent type)
-        // In the real app the role comes entirely from the DB, not from the UI selector.
-        const isAgentFamily = user.role === 'agent' || user.role === 'admin_empresa';
-        if (user.role === 'super_admin' && role !== 'agent') {
-            // super_admin always logs in via the "Agente" selector (or we just ignore selector for super_admin)
+
+        // Validación de rol cruzado con la UI selector
+        const isAgentFamily = realRole === 'agent' || realRole === 'admin_empresa';
+        if (realRole === 'super_admin' && role !== 'agent') {
+            // super_admin always logs in via the "Agente" selector
         } else if (isAgentFamily && role === 'client') {
             setLoginError('Esta cuenta es de tipo Agente. Seleccioná el rol "Agente".');
+            await supabase.auth.signOut();
             return;
-        } else if (user.role === 'client' && role === 'agent') {
+        } else if (realRole === 'client' && role === 'agent') {
             setLoginError('Esta cuenta es de tipo Cliente. Seleccioná el rol "Cliente".');
+            await supabase.auth.signOut();
             return;
         }
 
         setLoginError('');
         const userData = {
-            id: user.id,
+            id: user.id, // Se mantiene el id mockeado para el resto del sistema
             email: user.email,
-            role: user.role,
+            role: realRole, // Usamos el rol real de public.profiles
             name: user.name,
             company: user.company,
             companyId: user.companyId,
