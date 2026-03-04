@@ -442,7 +442,7 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
         } finally {
             setSending(false);
         }
-    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage, sending, addToast, activeTicket.id, setDrafts, chatDirtyRef]);
+    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage, sending, addToast, activeTicket.id, setDrafts, chatDirtyRef, hasText]);
 
     const handleAssign = (agent) => { assignTicket(activeTicket.id, agent); setAssignOpen(false); };
 
