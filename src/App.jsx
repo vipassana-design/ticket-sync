@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useTickets, TicketProvider } from './context/TicketContext';
 import { AdminProvider } from './context/AdminContext';
 import { ToastProvider } from './context/ToastContext';
-import { DEMO_USERS } from './data/mockData';
 import { supabase } from './config/supabase';
 
 
@@ -137,28 +136,24 @@ export default function App() {
         // Consultar el rol real en la base de datos usando el ID autenticado
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('role')
+            .select(`
+                id,
+                email,
+                name,
+                role,
+                company_id,
+                companies ( name )
+            `)
             .eq('id', data.user.id)
             .single();
 
         if (profileError || !profile) {
-            setLoginError('Hubo un problema obteniendo tu perfil en la base de datos.');
+            setLoginError('Error de configuración de perfil. Contacte al soporte.');
             await supabase.auth.signOut();
             return;
         }
 
         const realRole = profile.role;
-
-        // Recuperar perfil desde mockData (Aislamiento para mantener UI funcionando)
-        const user = DEMO_USERS.find(
-            u => u.email.toLowerCase() === email.toLowerCase()
-        );
-
-        if (!user) {
-            setLoginError('Autenticado en Supabase pero perfil no encontrado en mockData.');
-            await supabase.auth.signOut();
-            return;
-        }
 
         // Validación de rol cruzado con la UI selector
         const isAgentFamily = realRole === 'agent' || realRole === 'admin_empresa';
@@ -176,14 +171,15 @@ export default function App() {
 
         setLoginError('');
         const userData = {
-            id: user.id, // Se mantiene el id mockeado para el resto del sistema
-            email: user.email,
-            role: realRole, // Usamos el rol real de public.profiles
-            name: user.name,
-            company: user.company,
-            companyId: user.companyId,
-            agentId: user.agentId,
-            clientId: user.clientId,
+            id: profile.id, // Supabase auth uid
+            email: profile.email,
+            role: realRole,
+            name: profile.name,
+            company: profile.companies ? profile.companies.name : null,
+            companyId: profile.company_id,
+            // For mapping compatibility with previous mock data fields (some parts of the app use them):
+            agentId: isAgentFamily ? profile.id : null,
+            clientId: realRole === 'client' ? profile.id : null,
         };
 
         setCurrentUser(userData);
