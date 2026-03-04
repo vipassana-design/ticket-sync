@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { initialAllUsers } from '../data/mockData';
 import { supabase, supabaseAdmin } from '../config/supabase';
 
 const AdminContext = createContext(null);
@@ -13,10 +12,14 @@ export function AdminProvider({ children, currentUser }) {
     const [loadingCompanies, setLoadingCompanies] = useState(true);
 
     useEffect(() => {
-        if (currentUser?.role === 'super_admin') {
+        if (!currentUser) return;
+
+        if (currentUser.role === 'super_admin') {
             fetchCompanies();
+            fetchUsers();
         } else {
             setLoadingCompanies(false);
+            fetchUsers();
         }
     }, [currentUser]);
 
@@ -42,7 +45,39 @@ export function AdminProvider({ children, currentUser }) {
     };
 
     // DB table: profiles(id, email, name, role, company_id, status, ...)
-    const [allUsers, setAllUsers] = useState(initialAllUsers);
+    const [allUsers, setAllUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(true);
+
+    const fetchUsers = async () => {
+        setLoadingUsers(true);
+        try {
+            let query = supabase.from('profiles').select('*').order('created_at', { ascending: false });
+
+            // Si el usuario no es super_admin, filtramos solo los usuarios de su empresa
+            if (currentUser?.role !== 'super_admin') {
+                query = query.eq('company_id', currentUser.companyId);
+            }
+
+            const { data, error } = await query;
+            if (!error && data) {
+                const mapped = data.map(u => ({
+                    id: u.id,
+                    email: u.email,
+                    name: u.name,
+                    role: u.role,
+                    companyId: u.company_id,
+                    status: u.status,
+                    avatarUrl: u.avatar_url,
+                    createdAt: new Date(u.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
+                }));
+                setAllUsers(mapped);
+            }
+        } catch (error) {
+            console.error('Error al hacer fetch a profiles:', error);
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
 
     // ─── Company Actions ─────────────────────────────────────────────────────
     const addCompany = async ({ name, logoFile = null, status = 'Activo' }) => {
@@ -99,16 +134,32 @@ export function AdminProvider({ children, currentUser }) {
     };
 
     // DB: UPDATE companies SET status = ? WHERE id = ?
-    const toggleCompanyStatus = (companyId) => {
+    const toggleCompanyStatus = async (companyId) => {
+        const company = companies.find(c => c.id === companyId);
+        if (!company) return;
+        const newStatus = company.status === 'Activo' ? 'Inactivo' : 'Activo';
+
+        const { error } = await supabase.from('companies').update({ status: newStatus }).eq('id', companyId);
+        if (error) {
+            console.error('Error actualizando estado de la empresa:', error);
+            return;
+        }
+
         setCompanies(prev => prev.map(c =>
             c.id === companyId
-                ? { ...c, status: c.status === 'Activo' ? 'Inactivo' : 'Activo' }
+                ? { ...c, status: newStatus }
                 : c
         ));
     };
 
     // DB: UPDATE companies SET name = ?, logo_url = ? WHERE id = ?
-    const updateCompany = (companyId, updates) => {
+    const updateCompany = async (companyId, updates) => {
+        const { error } = await supabase.from('companies').update(updates).eq('id', companyId);
+        if (error) {
+            console.error('Error actualizando datos de empresa:', error);
+            return;
+        }
+
         setCompanies(prev => prev.map(c =>
             c.id === companyId ? { ...c, ...updates } : c
         ));
@@ -211,10 +262,20 @@ export function AdminProvider({ children, currentUser }) {
 
 
     // DB: UPDATE profiles SET status = ? WHERE id = ?
-    const toggleUserStatus = (userId) => {
+    const toggleUserStatus = async (userId) => {
+        const user = allUsers.find(u => u.id === userId);
+        if (!user) return;
+        const newStatus = user.status === 'Activo' ? 'Inactivo' : 'Activo';
+
+        const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', userId);
+        if (error) {
+            console.error('Error actualizando estado del usuario:', error);
+            return;
+        }
+
         setAllUsers(prev => prev.map(u =>
             u.id === userId
-                ? { ...u, status: u.status === 'Activo' ? 'Inactivo' : 'Activo' }
+                ? { ...u, status: newStatus }
                 : u
         ));
     };
@@ -250,6 +311,7 @@ export function AdminProvider({ children, currentUser }) {
             getClientsByCompany,
             getUserCountByCompany,
             fetchCompanies,
+            fetchUsers,
         }}>
             {children}
         </AdminContext.Provider>

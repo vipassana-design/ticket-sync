@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTickets } from '../../context/TicketContext';
+import { useAdmin } from '../../context/AdminContext';
 
 // ─── Simple Bar Chart ─────────────────────────────────────────────────────────
 function BarChart({ data, maxVal, color = 'bg-primary' }) {
@@ -40,7 +41,10 @@ function StatCard({ icon, value, label, sub, color = 'text-primary' }) {
 
 // ─── Reports View ─────────────────────────────────────────────────────────────
 export default function Reports() {
-    const { tickets, clients, currentAgent, agents, toggleSidebar } = useTickets();
+    const { tickets, currentAgent, toggleSidebar, currentUser } = useTickets();
+    const { getAgentsByCompany, getClientsByCompany } = useAdmin();
+    const agents = getAgentsByCompany(currentUser?.companyId);
+    const clients = getClientsByCompany(currentUser?.companyId);
     const [dateRange, setDateRange] = useState('7d');
 
     // ── Date range filter ─────────────────────────────────────────────────────
@@ -115,11 +119,10 @@ export default function Reports() {
     const agentDisplay = agentStats;
 
     // ── Client ticket stats ───────────────────────────────────────────────────
-    const clientStats = Object.values(clients).map(client => {
+    const clientStats = clients.map(client => {
         const clientTickets = rangeTickets.filter(t => t.clientId === client.id);
         return {
             name: client.name,
-            company: client.company,
             total: clientTickets.length,
             resolved: clientTickets.filter(t => t.status === 'Resuelto' || t.status === 'Archivado').length,
             open: clientTickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado').length,

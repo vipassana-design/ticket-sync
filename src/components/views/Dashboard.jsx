@@ -47,7 +47,7 @@ function PriorityBadge({ priority }) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const { tickets, clients, currentAgent, setActiveView, toggleSidebar } = useTickets();
+    const { tickets, currentAgent, setActiveView, toggleSidebar } = useTickets();
 
     // Real-time metrics
     const openTickets = tickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado');
@@ -116,7 +116,6 @@ export default function Dashboard() {
                         ) : (
                             <div className="divide-y divide-border-gray">
                                 {sortedMyTickets.map(ticket => {
-                                    const client = clients[ticket.clientId];
                                     return (
                                         <div
                                             key={ticket.id}
@@ -126,7 +125,7 @@ export default function Dashboard() {
                                             <PriorityBadge priority={ticket.priority} />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-primary transition-colors">{ticket.title}</p>
-                                                <p className="text-[11px] text-slate-400 mt-0.5">{client?.name} · {ticket.channel}</p>
+                                                <p className="text-[11px] text-slate-400 mt-0.5">{ticket.clientName} · {ticket.channel}</p>
                                             </div>
                                             <div className="flex items-center gap-2 shrink-0">
                                                 <span className={`text-[11px] font-bold px-2 py-1 rounded-lg ${ticket.sla?.includes('1h') ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>

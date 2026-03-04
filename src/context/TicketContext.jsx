@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import { initialTickets, clients, currentAgent, agents } from '../data/mockData';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { clients, currentAgent, agents } from '../data/mockData';
 import { supabase } from '../config/supabase';
 
 const TicketContext = createContext(null);
@@ -8,7 +8,8 @@ let nextMsgId = 9000;
 let nextTicketNum = 1001;
 
 export function TicketProvider({ children, currentUser }) {
-    const [tickets, setTickets] = useState(initialTickets);
+    const [tickets, setTickets] = useState([]);
+    const [loadingTickets, setLoadingTickets] = useState(true);
     const [activeTicketId, setActiveTicketId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState('Abiertos');
@@ -24,12 +25,114 @@ export function TicketProvider({ children, currentUser }) {
     // DB: currentUser.clientId comes from profiles.client_id (set on login)
     const currentClientId = currentUser?.clientId ?? null;
     // DB: currentUser.agentId comes from profiles.agent_id (set on login)
-    const currentAgentId = currentUser?.agentId ?? currentAgent.id;
+    const currentAgentId = currentUser?.agentId ?? null;
+
+    // ── Fetch Tickets ─────────────────────────────────────────────────────────
+    const fetchTickets = useCallback(async () => {
+        if (!currentUser || currentUser.role === 'super_admin') {
+            setLoadingTickets(false);
+            return;
+        }
+        setLoadingTickets(true);
+        try {
+            // Utilizamos !fk_column para desambiguar referencias a profiles
+            let query = supabase
+                .from('tickets')
+                .select(`
+                    *,
+                    client:profiles!tickets_client_id_fkey(name),
+                    agent:profiles!tickets_assigned_agent_id_fkey(name)
+                `)
+                .order('created_at', { ascending: false })
+                .eq('company_id', currentUser.companyId);
+
+            if (currentUser.role === 'client') {
+                query = query.eq('client_id', currentUser.id);
+            }
+
+            const { data, error } = await query;
+            if (!error && data) {
+                const mapped = data.map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    summary: t.description,
+                    status: t.status,
+                    priority: t.priority,
+                    channel: t.channel,
+                    sla: t.sla,
+                    timestamp: new Date(t.created_at).toLocaleDateString('es-AR'),
+                    rawTs: new Date(t.created_at).getTime(),
+                    clientId: t.client_id,
+                    clientName: t.client?.name,
+                    commentCount: 0,
+                    hasAttachment: false,
+                    isEscalated: false,
+                    isAssigned: !!t.assigned_agent_id,
+                    assignedAgent: t.agent ? { id: t.assigned_agent_id, name: t.agent.name } : null,
+                    openedAt: new Date(t.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    messages: []
+                }));
+                // Preservar mensajes si ya estaban cargados en estados previos (opcional)
+                setTickets(prev => {
+                    return mapped.map(newT => {
+                        const existing = prev.find(p => p.id === newT.id);
+                        return existing ? { ...newT, messages: existing.messages, commentCount: existing.commentCount } : newT;
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching tickets:', error);
+        } finally {
+            setLoadingTickets(false);
+        }
+    }, [currentUser]);
+
+    useEffect(() => {
+        fetchTickets();
+    }, [fetchTickets]);
+
+    // ── Fetch Messages for Active Ticket ──────────────────────────────────────
+    const fetchActiveTicketMessages = useCallback(async () => {
+        if (!activeTicketId) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select(`
+                    *,
+                    profile:profiles!messages_sender_id_fkey(name, role)
+                `)
+                .eq('ticket_id', activeTicketId)
+                .order('created_at', { ascending: true });
+
+            if (!error && data) {
+                const mappedMsg = data.map(m => ({
+                    id: m.id,
+                    senderId: m.sender_id,
+                    senderType: m.profile?.role,
+                    senderName: m.profile?.name,
+                    type: m.is_internal ? 'internal' : 'public',
+                    content: m.content,
+                    time: new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+                    attachments: m.attachments || undefined
+                }));
+
+                setTickets(prev => prev.map(t =>
+                    t.id === activeTicketId ? { ...t, messages: mappedMsg, commentCount: mappedMsg.length } : t
+                ));
+            }
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    }, [activeTicketId]);
+
+    useEffect(() => {
+        fetchActiveTicketMessages();
+    }, [fetchActiveTicketMessages]);
 
     // ── Derived Active ────────────────────────────────────────────────────────
     const activeTicket = tickets.find(t => t.id === activeTicketId) ?? null;
-    // DB: JOIN tickets ON clients.id = tickets.client_id
-    const activeClient = activeTicket ? clients[activeTicket.clientId] : null;
+    const activeClient = activeTicket ? { id: activeTicket.clientId, name: activeTicket.clientName } : null;
 
     // ── Role-scoped tickets ───────────────────────────────────────────────────
     // DB: clients → WHERE client_id = auth.uid() mapped to profiles.client_id
@@ -76,85 +179,33 @@ export function TicketProvider({ children, currentUser }) {
         setShowTicketList(true);
     }, []);
 
-    const resolveTicket = useCallback(() => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const systemMsg = {
-            id: `msg-sys-${nextMsgId++}`,
-            senderId: 'system',
-            senderType: 'system',
-            type: 'system-event',
-            // DB: content built from agents.name WHERE id = tickets.assigned_agent_id
-            content: `Ticket resuelto por ${currentUser?.name ?? currentAgent.name} a las ${timeStr}`,
-            time: timeStr,
-        };
-        setTickets(prev => prev.map(t =>
-            t.id === activeTicketId
-                ? { ...t, status: 'Resuelto', priority: 'Resuelto', sla: 'Completado', messages: [...t.messages, systemMsg] }
-                : t
-        ));
-    }, [activeTicketId, currentUser]);
+    const resolveTicket = useCallback(async () => {
+        const { error } = await supabase.from('tickets').update({ status: 'Resuelto', priority: 'Resuelto' }).eq('id', activeTicketId);
+        if (!error) fetchTickets();
+    }, [activeTicketId, fetchTickets]);
 
-    const reopenTicket = useCallback((ticketId) => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const systemMsg = {
-            id: `msg-sys-${nextMsgId++}`,
-            senderId: 'system',
-            senderType: 'system',
-            type: 'system-event',
-            content: `Ticket reabierto por ${currentUser?.name ?? currentAgent.name} a las ${timeStr}`,
-            time: timeStr,
-        };
-        setTickets(prev => prev.map(t =>
-            t.id === ticketId
-                ? { ...t, status: 'En Progreso', priority: 'En Progreso', sla: '4h restante', messages: [...t.messages, systemMsg] }
-                : t
-        ));
+    const reopenTicket = useCallback(async (ticketId) => {
+        const { error } = await supabase.from('tickets').update({ status: 'En Progreso', priority: 'En Progreso' }).eq('id', ticketId);
+        if (!error) fetchTickets();
+
         setResolvedMenuTicketId(null);
-    }, [currentUser]);
+    }, [fetchTickets]);
 
-    const archiveTicket = useCallback((ticketId) => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const systemMsg = {
-            id: `msg-sys-${nextMsgId++}`,
-            senderId: 'system',
-            senderType: 'system',
-            type: 'system-event',
-            content: `Ticket archivado por ${currentUser?.name ?? currentAgent.name} a las ${timeStr}`,
-            time: timeStr,
-        };
-        setTickets(prev => prev.map(t =>
-            t.id === ticketId
-                ? { ...t, status: 'Archivado', priority: 'Archivado', messages: [...t.messages, systemMsg] }
-                : t
-        ));
+    const archiveTicket = useCallback(async (ticketId) => {
+        const { error } = await supabase.from('tickets').update({ status: 'Archivado', priority: 'Archivado' }).eq('id', ticketId);
+        if (!error) fetchTickets();
+
         setResolvedMenuTicketId(null);
         if (activeTicketId === ticketId) {
             setActiveTicketId(null);
             setShowTicketList(true);
         }
-    }, [activeTicketId, currentUser]);
+    }, [activeTicketId, fetchTickets]);
 
-    const assignTicket = useCallback((ticketId, agent) => {
-        // DB: UPDATE tickets SET assigned_agent_id = agent.id WHERE id = ticketId
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const systemMsg = {
-            id: `msg-sys-${nextMsgId++}`,
-            senderId: 'system',
-            senderType: 'system',
-            type: 'system-event',
-            content: `Ticket asignado a ${agent.name} a las ${timeStr}`,
-            time: timeStr,
-        };
-        setTickets(prev => prev.map(t =>
-            t.id === ticketId
-                ? { ...t, isAssigned: true, assignedAgent: agent, messages: [...t.messages, systemMsg] }
-                : t
-        ));
-    }, []);
+    const assignTicket = useCallback(async (ticketId, agent) => {
+        const { error } = await supabase.from('tickets').update({ assigned_agent_id: agent.id }).eq('id', ticketId);
+        if (!error) fetchTickets();
+    }, [fetchTickets]);
 
     const sendMessage = useCallback(async (content, isPublic, attachments = []) => {
         if (!content.trim() && attachments.length === 0) return;
@@ -365,8 +416,7 @@ export function TicketProvider({ children, currentUser }) {
             isSidebarOpen, toggleSidebar,
             isNewTicketModalOpen, setIsNewTicketModalOpen,
             showTicketList,
-            currentAgent,              // DB: agents row for the logged-in agent
-            clients,                   // DB: clients table (all accessible clients)
+            currentAgent,
             activeView, setActiveView,
             resolvedMenuTicketId, setResolvedMenuTicketId,
             selectTicket,
