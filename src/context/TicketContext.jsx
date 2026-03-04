@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { clients, currentAgent, agents } from '../data/mockData';
 import { supabase } from '../config/supabase';
 
@@ -19,6 +19,13 @@ export function TicketProvider({ children, currentUser }) {
     const [showTicketList, setShowTicketList] = useState(true);
     const [activeView, setActiveViewReal] = useState('tickets'); // DB: persisted in user session
     const [resolvedMenuTicketId, setResolvedMenuTicketId] = useState(null);
+
+    // Drafts and Navigation Interception
+    const [drafts, setDrafts] = useState({});
+    const [draftModalOpen, setDraftModalOpen] = useState(false);
+    const [pendingNavigation, setPendingNavigation] = useState(null);
+    const chatDirtyRef = useRef(false);
+    const editorStateRef = useRef({ getHTML: () => '', getFiles: () => [] });
 
     // ── Role & Identity ───────────────────────────────────────────────────────
     const isClientRole = currentUser?.role === 'client';
@@ -452,6 +459,10 @@ export function TicketProvider({ children, currentUser }) {
             assignTicket,
             addTicket,
             goBackToList,
+            drafts,
+            setDrafts,
+            chatDirtyRef,
+            editorStateRef,
             currentUser,               // DB: auth.users + profiles (role, clientId, agentId)
             agents,                    // DB: SELECT * FROM agents WHERE team_id = current_team
             currentAgentId,            // DB: profiles.agent_id for the logged-in user
@@ -459,6 +470,60 @@ export function TicketProvider({ children, currentUser }) {
         }}
         >
             {children}
+
+            {/* Draft Intercept Modal */}
+            {draftModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+                    <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-6">
+                            <div className="size-12 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                                <span className="material-symbols-outlined text-amber-600 text-2xl select-none">edit_note</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-2">Mensaje sin enviar</h3>
+                            <p className="text-sm text-slate-500 leading-relaxed mb-6">
+                                Tienes un mensaje en proceso de redacción. ¿Quieres guardarlo como borrador o descartarlo para continuar?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setDrafts(prev => {
+                                            const copy = { ...prev };
+                                            delete copy[activeTicketId];
+                                            return copy;
+                                        });
+                                        chatDirtyRef.current = false;
+                                        setDraftModalOpen(false);
+                                        if (pendingNavigation) pendingNavigation();
+                                        setPendingNavigation(null);
+                                    }}
+                                    className="flex-1 px-4 py-2.5 rounded-xl border border-border-gray text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+                                >
+                                    Descartar
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setDrafts(prev => ({
+                                            ...prev,
+                                            [activeTicketId]: {
+                                                html: editorStateRef.current.getHTML(),
+                                                files: editorStateRef.current.getFiles()
+                                            }
+                                        }));
+                                        chatDirtyRef.current = false;
+                                        setDraftModalOpen(false);
+                                        if (pendingNavigation) pendingNavigation();
+                                        setPendingNavigation(null);
+                                    }}
+                                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-primary-accent transition-colors shadow-lg shadow-primary/20"
+                                >
+                                    Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </TicketContext.Provider>
     );
 }
