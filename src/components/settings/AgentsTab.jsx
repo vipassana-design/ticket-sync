@@ -25,7 +25,8 @@ function InviteAgentModal({ companyId, companyName, onClose }) {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url
+    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url vista previa
+    const [avatarFile, setAvatarFile] = useState(null); // File para almacenamiento real
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -37,10 +38,15 @@ function InviteAgentModal({ companyId, companyName, onClose }) {
         }
         setError('');
         setSaving(true);
-        await new Promise(r => setTimeout(r, 500));
-        addUser({ email, name, role: 'agent', companyId, companyName, password, avatarUrl });
-        setSaving(false);
-        onClose();
+        try {
+            await addUser({ email, name, role: 'agent', companyId, companyName, password, avatarFile });
+            setSaving(false);
+            onClose();
+        } catch (err) {
+            console.error('Error al invitar agente:', err);
+            setError(err.message || 'Se produjo un error al registrar el usuario.');
+            setSaving(false);
+        }
     };
 
     return (
@@ -62,7 +68,10 @@ function InviteAgentModal({ companyId, companyName, onClose }) {
                         value={avatarUrl}
                         name={name}
                         dark={false}
-                        onChange={(url) => setAvatarUrl(url)}
+                        onChange={(url, file) => {
+                            setAvatarUrl(url);
+                            setAvatarFile(file);
+                        }}
                         onError={(msg) => addToast({ message: msg, type: 'error' })}
                     />
 

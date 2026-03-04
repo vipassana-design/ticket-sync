@@ -46,15 +46,20 @@ export default function NewCompanyModal({ onClose }) {
         if (!name.trim()) { setError('El nombre de la empresa es requerido.'); return; }
         setError('');
         setSaving(true);
-        // DB: supabase.storage.upload() then supabase.from('companies').insert()
-        await new Promise(r => setTimeout(r, 500));
-        addCompany({
-            name: name.trim(),
-            logoUrl: logoPreview,   // DB: storage URL after upload
-            status: active ? 'Activo' : 'Inactivo',
-        });
-        setSaving(false);
-        onClose();
+
+        try {
+            await addCompany({
+                name: name.trim(),
+                logoFile: logoFile, // Pasamos el archivo real para que se suba
+                status: active ? 'Activo' : 'Inactivo',
+            });
+            setSaving(false);
+            onClose();
+        } catch (err) {
+            console.error('Error al guardar la empresa:', err);
+            setError(err.message || 'Ocurrió un error inesperado al guardar la empresa.');
+            setSaving(false);
+        }
     };
 
     return (

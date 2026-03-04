@@ -13,7 +13,8 @@ function CreateClientModal({ companyId, companyName, onClose }) {
     const [name, setName] = useState('');           // DB: profiles.name / clients.name
     const [email, setEmail] = useState('');         // DB: auth.users.email
     const [password, setPassword] = useState('');   // DB: hashed in auth.users
-    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url
+    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url vista previa
+    const [avatarFile, setAvatarFile] = useState(null); // File local a enviar a Storage
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -25,10 +26,15 @@ function CreateClientModal({ companyId, companyName, onClose }) {
         }
         setError('');
         setSaving(true);
-        await new Promise(r => setTimeout(r, 500));
-        addUser({ email, name, role: 'client', companyId, companyName, password, avatarUrl });
-        setSaving(false);
-        onClose();
+        try {
+            await addUser({ email, name, role: 'client', companyId, companyName, password, avatarFile });
+            setSaving(false);
+            onClose();
+        } catch (err) {
+            console.error('Error al crear usuario cliente:', err);
+            setError(err.message || 'Se produjo un error al registrar el cliente.');
+            setSaving(false);
+        }
     };
 
     return (
@@ -50,7 +56,10 @@ function CreateClientModal({ companyId, companyName, onClose }) {
                         value={avatarUrl}
                         name={name}
                         dark={false}
-                        onChange={(url) => setAvatarUrl(url)}
+                        onChange={(url, file) => {
+                            setAvatarUrl(url);
+                            setAvatarFile(file);
+                        }}
                         onError={(msg) => addToast({ message: msg, type: 'error' })}
                     />
 

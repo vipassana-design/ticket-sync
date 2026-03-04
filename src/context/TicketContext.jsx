@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { initialTickets, clients, currentAgent, agents } from '../data/mockData';
+import { supabase } from '../config/supabase';
 
 const TicketContext = createContext(null);
 
@@ -155,71 +156,196 @@ export function TicketProvider({ children, currentUser }) {
         ));
     }, []);
 
-    const sendMessage = useCallback((content, isPublic, attachments = []) => {
+    const sendMessage = useCallback(async (content, isPublic, attachments = []) => {
         if (!content.trim() && attachments.length === 0) return;
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        // DB: sender_id = auth.uid(), sender_type from profiles.role
-        const senderType = isClientRole ? 'client' : 'agent';
-        const senderId = isClientRole ? currentClientId : currentAgentId;
-        const newMsg = {
-            id: `msg-${nextMsgId++}`,       // DB: messages.id (uuid)
-            senderId,                        // DB: messages.sender_id
-            senderType,                      // DB: messages.sender_type
-            type: senderType === 'client' ? 'public' : (isPublic ? 'public' : 'internal'),
-            content: content.trim(),         // DB: messages.content
-            time: timeStr,                   // DB: messages.created_at (formatted on client)
-            // DB: attachments stored in message_attachments(message_id, file_url, file_name, file_size, mime_type)
-            attachments: attachments.length > 0 ? attachments : undefined,
-        };
-        setTickets(prev => prev.map(t =>
-            t.id === activeTicketId
-                ? { ...t, commentCount: t.commentCount + 1, messages: [...t.messages, newMsg] }
-                : t
-        ));
-    }, [activeTicketId, isClientRole, currentClientId, currentAgentId]);
 
-    const addTicket = useCallback((ticketData) => {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-        const newId = `TK-${nextTicketNum++}`;
-        // DB: clientId from profiles.client_id when role === 'client'
-        const clientId = isClientRole ? currentClientId : (ticketData.clientId || currentClientId);
-        const newMsg = {
-            id: `msg-init-${nextMsgId++}`,  // DB: messages.id
-            senderId: clientId,              // DB: messages.sender_id
-            senderType: 'client',
-            type: 'public',
-            content: ticketData.description, // DB: messages.content
-            time: timeStr,
-            attachments: ticketData.attachments?.length > 0 ? ticketData.attachments : undefined,
-        };
-        const newTicket = {
-            id: newId,                                          // DB: tickets.id (uuid, shown as TK-XXXX)
-            title: ticketData.title,                            // DB: tickets.title
-            summary: ticketData.description,                    // DB: tickets.summary
-            status: 'Nuevo',                                    // DB: tickets.status
-            priority: 'Nuevo',                                  // DB: tickets.priority
-            channel: ticketData.channel || 'Portal',            // DB: tickets.channel
-            sla: '48h restante',                                // DB: tickets.sla (computed from SLA rules)
-            timestamp: 'Ahora',                                 // DB: derived from tickets.created_at
-            rawTs: Date.now(),                                  // DB: tickets.created_at (unix ms)
-            clientId: clientId,                                 // DB: tickets.client_id → FK clients.id
-            commentCount: 1,                                    // DB: COUNT(messages) WHERE ticket_id
-            hasAttachment: (ticketData.attachments?.length ?? 0) > 0, // DB: EXISTS(message_attachments)
-            isEscalated: false,                                 // DB: tickets.is_escalated
-            isAssigned: false,                                  // DB: tickets.assigned_agent_id IS NOT NULL
-            assignedAgent: null,                                // DB: JOIN agents ON tickets.assigned_agent_id
-            openedAt: timeStr,                                  // DB: tickets.created_at (formatted)
-            messages: [newMsg],
-        };
-        setTickets(prev => [newTicket, ...prev]);
-        setActiveTicketId(newId);
-        setIsNewTicketModalOpen(false);
-        setShowTicketList(false);
-        setActiveView('tickets');
-        setActiveFilter('Abiertos');
-    }, [isClientRole, currentClientId]);
+        try {
+            const senderType = isClientRole ? 'client' : 'agent';
+            const senderId = currentUser?.id ?? (isClientRole ? currentClientId : currentAgentId);
+            const companyId = currentUser?.companyId;
+
+            // 1. Subir archivos si los hay
+            const uploadedAttachments = [];
+            if (attachments.length > 0) {
+                for (const file of attachments) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `${activeTicketId}/${fileName}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('tickets-attachments')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw new Error('Error al subir un adjunto del mensaje.');
+
+                    const { data: publicUrlData } = supabase.storage
+                        .from('tickets-attachments')
+                        .getPublicUrl(filePath);
+
+                    uploadedAttachments.push({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        url: publicUrlData.publicUrl
+                    });
+                }
+            }
+
+            // 2. Insertar mensaje en BD
+            const { data: msgData, error: msgError } = await supabase
+                .from('messages')
+                .insert([{
+                    ticket_id: activeTicketId,
+                    company_id: companyId,
+                    sender_id: senderId,
+                    content: content.trim(),
+                    is_internal: !isPublic,
+                    attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null
+                }])
+                .select()
+                .single();
+
+            if (msgError) throw new Error('Error al guardar el mensaje en la base de datos.');
+
+            // 3. Actualizar UI
+            const timeStr = new Date(msgData.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+            const newMsg = {
+                id: msgData.id,
+                senderId,
+                senderType,
+                type: senderType === 'client' ? 'public' : (isPublic ? 'public' : 'internal'),
+                content: msgData.content,
+                time: timeStr,
+                attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+            };
+
+            setTickets(prev => prev.map(t =>
+                t.id === activeTicketId
+                    ? { ...t, commentCount: t.commentCount + 1, messages: [...t.messages, newMsg] }
+                    : t
+            ));
+        } catch (error) {
+            console.error('Error enviando mensaje:', error);
+            throw error;
+        }
+    }, [activeTicketId, isClientRole, currentClientId, currentAgentId, currentUser]);
+
+    const addTicket = useCallback(async (ticketData) => {
+        try {
+            // DB: clientId from authenticated user or selected client
+            const clientId = isClientRole ? currentUser.id : (ticketData.clientId || currentUser.id);
+            const companyId = currentUser?.companyId;
+
+            // 1. Insertar ticket
+            const { data: ticketRow, error: ticketError } = await supabase
+                .from('tickets')
+                .insert([{
+                    company_id: companyId,
+                    title: ticketData.title,
+                    description: ticketData.description,
+                    status: 'Nuevo',
+                    priority: 'Nuevo',
+                    channel: ticketData.channel || 'Portal',
+                    sla: '48h',
+                    client_id: clientId
+                }])
+                .select()
+                .single();
+
+            if (ticketError) throw new Error('Error al crear el ticket.');
+
+            const ticketId = ticketRow.id;
+
+            // 2. Subir adjuntos iniciales
+            const uploadedAttachments = [];
+            if (ticketData.attachments && ticketData.attachments.length > 0) {
+                for (const file of ticketData.attachments) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                    const filePath = `${ticketId}/${fileName}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('tickets-attachments')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw new Error('Error subiendo adjunto del ticket.');
+
+                    const { data: publicUrlData } = supabase.storage
+                        .from('tickets-attachments')
+                        .getPublicUrl(filePath);
+
+                    uploadedAttachments.push({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        url: publicUrlData.publicUrl
+                    });
+                }
+            }
+
+            // 3. Insertar primer mensaje
+            const { data: msgData, error: msgError } = await supabase
+                .from('messages')
+                .insert([{
+                    ticket_id: ticketId,
+                    company_id: companyId,
+                    sender_id: clientId,
+                    content: ticketData.description,
+                    is_internal: false,
+                    attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null
+                }])
+                .select()
+                .single();
+
+            if (msgError) throw new Error('Error al registrar el mensaje inicial.');
+
+            // 4. Actualizar interfaz local
+            const timeStr = new Date(ticketRow.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+
+            const newMsg = {
+                id: msgData.id,
+                senderId: clientId,
+                senderType: 'client',
+                type: 'public',
+                content: msgData.content,
+                time: timeStr,
+                attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+            };
+
+            const newTicket = {
+                id: ticketId,
+                title: ticketRow.title,
+                summary: ticketRow.description,
+                status: 'Nuevo',
+                priority: 'Nuevo',
+                channel: ticketRow.channel,
+                sla: '48h restante',
+                timestamp: 'Ahora',
+                rawTs: new Date(ticketRow.created_at).getTime(),
+                clientId: clientId,
+                commentCount: 1,
+                hasAttachment: uploadedAttachments.length > 0,
+                isEscalated: false,
+                isAssigned: false,
+                assignedAgent: null,
+                openedAt: timeStr,
+                messages: [newMsg],
+            };
+
+            setTickets(prev => [newTicket, ...prev]);
+            setActiveTicketId(ticketId);
+            setIsNewTicketModalOpen(false);
+            setShowTicketList(false);
+            setActiveView('tickets');
+            setActiveFilter('Abiertos');
+
+            return newTicket;
+
+        } catch (error) {
+            console.error('Error insertando ticket/mensaje:', error);
+            throw error;
+        }
+    }, [isClientRole, currentUser]);
 
     const toggleClientPanel = useCallback(() => setIsClientPanelOpen(p => !p), []);
     const toggleSidebar = useCallback(() => setIsSidebarOpen(p => !p), []);

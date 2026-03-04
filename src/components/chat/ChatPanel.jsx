@@ -314,6 +314,7 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
     const [assignOpen, setAssignOpen] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
     const [pendingFiles, setPendingFiles] = useState([]);
+    const [sending, setSending] = useState(false);
     const assignRef = useRef(null);
     const fileInputRef = useRef(null);
     const imageInputRef = useRef(null);
@@ -386,16 +387,25 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
         return html === '<p></p>' || editor.isEmpty;
     };
 
-    const handleSend = useCallback(() => {
-        if (!editor) return;
+    const handleSend = useCallback(async () => {
+        if (!editor || sending) return;
         const isEmpty = isEditorEmpty();
         if ((isEmpty && pendingFiles.length === 0) || isDisabled) return;
-        const htmlContent = isEmpty ? '' : editor.getHTML();
-        sendMessage(htmlContent, isPublic, pendingFiles);
-        editor.commands.clearContent(true);
-        editor.commands.focus();
-        setPendingFiles([]);
-    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage]);
+
+        setSending(true);
+        try {
+            const htmlContent = isEmpty ? '' : editor.getHTML();
+            await sendMessage(htmlContent, isPublic, pendingFiles.map(f => f.rawFile));
+            editor.commands.clearContent(true);
+            editor.commands.focus();
+            setPendingFiles([]);
+        } catch (error) {
+            console.error('Error enviando mensaje:', error);
+            addToast({ message: error.message || 'Error al enviar el mensaje', type: 'error' });
+        } finally {
+            setSending(false);
+        }
+    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage, sending, addToast]);
 
     const handleAssign = (agent) => { assignTicket(activeTicket.id, agent); setAssignOpen(false); };
 
@@ -651,17 +661,20 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
                     {/* Send */}
                     <button
                         onClick={handleSend}
-                        disabled={isDisabled || !canSend}
+                        disabled={isDisabled || !canSend || sending}
                         className={`
-                            text-white rounded-xl px-4 sm:px-5 py-2 text-sm font-bold transition-all duration-200 flex items-center gap-1
-                            ${isDisabled || !canSend
-                                ? 'bg-slate-300 cursor-not-allowed'
+                            text-white rounded-xl px-4 sm:px-5 py-2 text-sm font-bold transition-all duration-200 flex items-center justify-center gap-1 min-w-[100px]
+                            ${isDisabled || !canSend || sending
+                                ? 'bg-slate-300 cursor-not-allowed opacity-70'
                                 : 'bg-gradient-to-r from-primary-accent to-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95'
                             }
                         `}
                     >
-                        <span className="hidden sm:inline">Enviar</span>
-                        <span className="material-symbols-outlined text-base select-none sm:hidden">send</span>
+                        {sending ? (
+                            <><span className="material-symbols-outlined text-base select-none animate-spin">progress_activity</span> <span className="hidden sm:inline">Enviando...</span></>
+                        ) : (
+                            <><span className="hidden sm:inline">Enviar</span><span className="material-symbols-outlined text-base select-none sm:hidden">send</span></>
+                        )}
                     </button>
                 </div>
             </div>

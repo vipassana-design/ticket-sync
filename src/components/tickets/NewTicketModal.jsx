@@ -24,6 +24,7 @@ export default function NewTicketModal() {
         description: '',
     });
     const [attachments, setAttachments] = useState([]);
+    const [saving, setSaving] = useState(false);
     const fileInputRef = useRef(null);
 
     if (!isNewTicketModalOpen) return null;
@@ -63,12 +64,25 @@ export default function NewTicketModal() {
         });
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.title.trim() || !form.description.trim()) return;
-        addTicket({ ...form, attachments });
-        setForm({ clientId: CLIENT_IDS[0], title: '', priority: 'Nuevo', channel: 'Portal', description: '' });
-        setAttachments([]);
+
+        setSaving(true);
+        try {
+            // Pasamos los archivos 'rawFile' a TicketContext
+            await addTicket({
+                ...form,
+                attachments: attachments.map(a => a.rawFile)
+            });
+            setForm({ clientId: CLIENT_IDS[0], title: '', priority: 'Nuevo', channel: 'Portal', description: '' });
+            setAttachments([]);
+            setSaving(false);
+        } catch (error) {
+            console.error('Error al subir ticket:', error);
+            addToast({ message: error.message || 'Error al guardar el ticket', type: 'error' });
+            setSaving(false);
+        }
     };
 
     const field = 'block w-full rounded-xl border border-border-gray bg-slate-50 px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all';
@@ -236,15 +250,21 @@ export default function NewTicketModal() {
                         <button
                             type="button"
                             onClick={() => setIsNewTicketModalOpen(false)}
-                            className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95"
+                            disabled={saving}
+                            className="flex-1 py-3 rounded-xl text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-all active:scale-95 disabled:opacity-50"
                         >
                             Cancelar
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-primary-accent to-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                            disabled={saving}
+                            className="flex-1 py-3 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-primary-accent to-primary shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            Crear Ticket
+                            {saving ? (
+                                <><span className="material-symbols-outlined text-base select-none animate-spin">progress_activity</span> Guardando...</>
+                            ) : (
+                                'Crear Ticket'
+                            )}
                         </button>
                     </div>
                 </form>

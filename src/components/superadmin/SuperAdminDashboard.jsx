@@ -27,7 +27,8 @@ function CreateAdminModal({ company, onClose }) {
     const [name, setName] = useState('');           // DB: profiles.name
     const [email, setEmail] = useState('');         // DB: auth.users.email
     const [password, setPassword] = useState('');   // DB: bcrypt hashed in auth.users
-    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url
+    const [avatarUrl, setAvatarUrl] = useState(null); // DB: profiles.avatar_url visual preview
+    const [avatarFile, setAvatarFile] = useState(null); // File para Storage
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
 
@@ -39,20 +40,24 @@ function CreateAdminModal({ company, onClose }) {
         }
         setError('');
         setSaving(true);
-        // DB: supabase.auth.admin.createUser({ email, password })
-        //     INSERT INTO profiles(name, role='admin_empresa', company_id=company.id, ...)
-        await new Promise(r => setTimeout(r, 500));
-        addUser({
-            email,
-            name,
-            role: 'admin_empresa',
-            companyId: company.id,
-            companyName: company.name,
-            password,
-            avatarUrl,              // DB: profiles.avatar_url
-        });
-        setSaving(false);
-        onClose();
+
+        try {
+            await addUser({
+                email,
+                name,
+                role: 'admin_empresa',
+                companyId: company.id,
+                companyName: company.name,
+                password,
+                avatarFile,              // Pasa el File para subir a Supabase Storage
+            });
+            setSaving(false);
+            onClose();
+        } catch (err) {
+            console.error('Error al registrar Agente Admin:', err);
+            setError(err.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.');
+            setSaving(false);
+        }
     };
 
     return (
@@ -78,7 +83,10 @@ function CreateAdminModal({ company, onClose }) {
                         value={avatarUrl}
                         name={name}
                         dark={true}
-                        onChange={(url) => setAvatarUrl(url)}
+                        onChange={(url, file) => {
+                            setAvatarUrl(url);
+                            setAvatarFile(file);
+                        }}
                         onError={(msg) => addToast({ message: msg, type: 'error' })}
                     />
 
