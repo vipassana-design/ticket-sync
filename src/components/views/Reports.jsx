@@ -53,8 +53,8 @@ export default function Reports() {
     const rangeTickets = tickets.filter(t => t.rawTs >= cutoff);
 
     // ── Data derivations ──────────────────────────────────────────────────────
-    const resolved = rangeTickets.filter(t => t.status === 'Resuelto' || t.status === 'Archivado');
-    const open = rangeTickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado');
+    const resolved = rangeTickets.filter(t => t.status === 'Cerrado' || t.status === 'Archivado');
+    const open = rangeTickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado');
 
     // Volume by day of week (buckets based on rawTs within range)
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -92,7 +92,7 @@ export default function Reports() {
         if (g.tickets.length === 0) {
             return { label: g.label, color: 'bg-slate-200', met: 0, total: 0 };
         }
-        const metCount = g.tickets.filter(t => t.status === 'Resuelto' || t.status === 'Archivado').length;
+        const metCount = g.tickets.filter(t => t.status === 'Cerrado' || t.status === 'Archivado').length;
         return {
             label: g.label,
             color: g.color,
@@ -108,10 +108,10 @@ export default function Reports() {
         name: agent.name,
         initials: agent.initials,
         resolved: rangeTickets.filter(t =>
-            t.assignedAgent?.id === agent.id && (t.status === 'Resuelto' || t.status === 'Archivado')
+            t.assignedAgent?.id === agent.id && (t.status === 'Cerrado' || t.status === 'Archivado')
         ).length,
         open: rangeTickets.filter(t =>
-            t.assignedAgent?.id === agent.id && t.status !== 'Resuelto' && t.status !== 'Archivado'
+            t.assignedAgent?.id === agent.id && t.status !== 'Cerrado' && t.status !== 'Archivado'
         ).length,
     })).filter(a => a.resolved + a.open > 0) // hide agents with 0 tickets in range
         .sort((a, b) => (b.resolved + b.open) - (a.resolved + a.open));
@@ -124,8 +124,8 @@ export default function Reports() {
         return {
             name: client.name,
             total: clientTickets.length,
-            resolved: clientTickets.filter(t => t.status === 'Resuelto' || t.status === 'Archivado').length,
-            open: clientTickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado').length,
+            resolved: clientTickets.filter(t => t.status === 'Cerrado' || t.status === 'Archivado').length,
+            open: clientTickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado').length,
         };
     }).filter(c => c.total > 0).sort((a, b) => b.total - a.total);
 
@@ -190,7 +190,7 @@ export default function Reports() {
                     <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">KPIs Principales</h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <StatCard icon="confirmation_number" value={rangeTickets.length} label="Total tickets" sub={`Últimos ${daysMap[dateRange]} días`} />
-                        <StatCard icon="check_circle" value={resolved.length} label="Resueltos" color="text-status-green" sub={`${rangeTickets.length > 0 ? Math.round((resolved.length / rangeTickets.length) * 100) : 0}% del total`} />
+                        <StatCard icon="check_circle" value={resolved.length} label="Cerrados" color="text-status-green" sub={`${rangeTickets.length > 0 ? Math.round((resolved.length / rangeTickets.length) * 100) : 0}% del total`} />
                         <StatCard icon="schedule" value={`${avgResolutionHrs}h`} label="Tiempo prom. resolución" color="text-status-orange" sub="FRT estimado" />
                         <StatCard icon="inbox" value={open.length} label="Pendientes" color="text-red-500" sub="Sin resolver" />
                     </div>
@@ -253,11 +253,11 @@ export default function Reports() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-slate-800 truncate">{agent.name}</p>
-                                            <p className="text-[11px] text-slate-400">{agent.open} abiertos · {agent.resolved} resueltos</p>
+                                            <p className="text-[11px] text-slate-400">{agent.open} abiertos · {agent.resolved} Cerrados</p>
                                         </div>
                                         <div className="flex items-center gap-1 shrink-0">
                                             <span className="text-sm font-extrabold text-status-green">{agent.resolved}</span>
-                                            <span className="text-[10px] text-slate-400">resueltos</span>
+                                            <span className="text-[10px] text-slate-400">Cerrados</span>
                                         </div>
                                     </div>
                                 ))}
@@ -281,7 +281,7 @@ export default function Reports() {
                                         <div className="flex items-center gap-3 shrink-0">
                                             <div className="text-center">
                                                 <p className="text-sm font-extrabold text-status-green">{client.resolved}</p>
-                                                <p className="text-[9px] text-slate-400">resueltos</p>
+                                                <p className="text-[9px] text-slate-400">Cerrados</p>
                                             </div>
                                             <div className="text-center">
                                                 <p className="text-sm font-extrabold text-red-400">{client.open}</p>
@@ -331,3 +331,4 @@ export default function Reports() {
         </div>
     );
 }
+

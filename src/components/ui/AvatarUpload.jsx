@@ -81,3 +81,4 @@ export default function AvatarUpload({ value, onChange, name = '', dark = false,
         </div>
     );
 }
+

@@ -8,11 +8,11 @@ export default function ClientDashboard() {
 
     // DB: SELECT * FROM tickets WHERE client_id = profiles.client_id (auth.uid() → profiles)
     const myTickets = tickets.filter(t => t.clientId === currentClientId);
-    const activeTickets = myTickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado');
-    const closedTickets = myTickets.filter(t => t.status === 'Resuelto' || t.status === 'Archivado');
+    const activeTickets = myTickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado');
+    const closedTickets = myTickets.filter(t => t.status === 'Cerrado' || t.status === 'Archivado');
 
     const statusBadge = {
-        'Resuelto': { cls: 'bg-status-green/10 text-status-green', label: 'Resuelto' },
+        'Cerrado': { cls: 'bg-status-green/10 text-status-green', label: 'Cerrado' },
         'Archivado': { cls: 'bg-slate-200 text-slate-500', label: 'Archivado' },
         'Urgente': { cls: 'bg-red-100 text-red-600', label: 'Urgente' },
         'En Progreso': { cls: 'bg-orange-100 text-orange-600', label: 'En Progreso' },
@@ -71,7 +71,7 @@ export default function ClientDashboard() {
                 {/* Closed / Archived ticket history */}
                 {/* DB: SELECT id, title, channel, status FROM tickets              */}
                 {/*     WHERE client_id = currentClientId                           */}
-                {/*     AND status IN ('Resuelto','Archivado') ORDER BY created_at DESC */}
+                {/*     AND status IN ('Cerrado','Archivado') ORDER BY created_at DESC */}
                 <section>
                     <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
                         Historial de Tickets Cerrados ({closedTickets.length})
@@ -81,7 +81,7 @@ export default function ClientDashboard() {
                         <div className="bg-white border border-border-gray rounded-2xl p-10 text-center">
                             <span className="material-symbols-outlined text-slate-200 text-4xl select-none">inbox</span>
                             <p className="text-sm font-bold text-slate-400 mt-3">Sin tickets cerrados aún</p>
-                            <p className="text-xs text-slate-300 mt-1">Tus tickets resueltos aparecerán aquí</p>
+                            <p className="text-xs text-slate-300 mt-1">Tus tickets Cerrados aparecerán aquí</p>
                         </div>
                     ) : (
                         <div className="bg-white border border-border-gray rounded-2xl overflow-hidden shadow-sm">
@@ -95,7 +95,7 @@ export default function ClientDashboard() {
 
                             <div className="divide-y divide-border-gray">
                                 {closedTickets.map(ticket => {
-                                    const badge = statusBadge[ticket.status] || statusBadge['Resuelto'];
+                                    const badge = statusBadge[ticket.status] || statusBadge['Cerrado'];
                                     return (
                                         <div
                                             key={ticket.id}
@@ -138,3 +138,4 @@ export default function ClientDashboard() {
         </div>
     );
 }
+

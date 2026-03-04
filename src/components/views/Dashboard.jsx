@@ -50,14 +50,14 @@ export default function Dashboard() {
     const { tickets, currentAgent, setActiveView, toggleSidebar } = useTickets();
 
     // Real-time metrics
-    const openTickets = tickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado');
+    const openTickets = tickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado');
     const unassigned = openTickets.filter(t => !t.isAssigned);
     const openedToday = openTickets.filter(t => {
         const oneDay = 24 * 60 * 60 * 1000;
         return Date.now() - t.rawTs < oneDay;
     });
     const slaRed = openTickets.filter(t => t.sla && t.sla.includes('1h'));
-    const myTickets = tickets.filter(t => t.isAssigned && t.status !== 'Resuelto' && t.status !== 'Archivado');
+    const myTickets = tickets.filter(t => t.isAssigned && t.status !== 'Cerrado' && t.status !== 'Archivado');
 
     // Sort my tickets by priority weight
     const priorityWeight = { 'Urgente': 0, 'En Progreso': 1, 'Nuevo': 2 };
@@ -193,3 +193,4 @@ export default function Dashboard() {
         </div>
     );
 }
+

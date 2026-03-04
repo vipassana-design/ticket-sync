@@ -11,7 +11,7 @@ const historyDotColor = {
 // ─── Status → color map for ticket history derived from real tickets ──────────
 // DB: tickets.status → UI color token
 function statusToColor(status) {
-    if (status === 'Resuelto' || status === 'Archivado') return 'green';
+    if (status === 'Cerrado' || status === 'Archivado') return 'green';
     if (status === 'Urgente') return 'orange';
     return 'slate';
 }
@@ -91,18 +91,20 @@ function ClientPanelContent({ activeTicket, activeClient, tickets, onClose }) {
 
                 {/* Status + Created At grid */}
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                    {/* DB: clients.status */}
                     <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-800">
                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Estado</p>
                         <div className="flex items-center gap-1.5">
-                            <span className="size-1.5 rounded-full bg-status-green shrink-0" />
-                            <p className="text-xs text-status-green font-bold">{activeClient.status}</p>
+                            <span className={`size-1.5 rounded-full shrink-0 ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'bg-status-green' : activeTicket?.status === 'Urgente' ? 'bg-status-orange' : 'bg-slate-400'}`} />
+                            <p className={`text-xs font-bold ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'text-status-green' : activeTicket?.status === 'Urgente' ? 'text-status-orange' : 'text-slate-300'}`}>
+                                {activeTicket?.status || 'Desconocido'}
+                            </p>
                         </div>
                     </div>
-                    {/* DB: clients.created_at */}
                     <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-800">
                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Fecha Creación</p>
-                        <p className="text-[11px] text-white font-bold leading-tight">{activeClient.createdAt}</p>
+                        <p className="text-[11px] text-white font-bold leading-tight">
+                            {activeTicket ? new Date(activeTicket.rawTs).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).replace(',', '') + 'hs' : ''}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -122,14 +124,11 @@ function ClientPanelContent({ activeTicket, activeClient, tickets, onClose }) {
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">#{activeTicket.id.toString().split('-')[0]}</p>
                                     <p className="text-xs text-slate-200 leading-snug mb-2">{activeTicket.title}</p>
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${activeTicket.status === 'Resuelto' || activeTicket.status === 'Archivado' ? 'bg-status-green/10 text-status-green border border-status-green/20' :
-                                                activeTicket.status === 'Urgente' ? 'bg-status-orange/10 text-status-orange border border-status-orange/20' :
-                                                    'bg-slate-700 text-slate-300'
+                                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${activeTicket.status === 'Cerrado' || activeTicket.status === 'Archivado' ? 'bg-status-green/10 text-status-green border border-status-green/20' :
+                                            activeTicket.status === 'Urgente' ? 'bg-status-orange/10 text-status-orange border border-status-orange/20' :
+                                                'bg-slate-700 text-slate-300'
                                             }`}>
                                             {activeTicket.status}
-                                        </span>
-                                        <span className="text-[9px] font-bold text-slate-500 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
-                                            {new Date(activeTicket.rawTs).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}hs (GMT-3)
                                         </span>
                                     </div>
                                 </div>
@@ -259,3 +258,4 @@ export default function ClientPanel() {
         </>
     );
 }
+

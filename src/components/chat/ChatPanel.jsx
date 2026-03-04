@@ -317,11 +317,12 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
     const [showEmoji, setShowEmoji] = useState(false);
     const [pendingFiles, setPendingFiles] = useState([]);
     const [sending, setSending] = useState(false);
+    const [hasText, setHasText] = useState(false);
     const assignRef = useRef(null);
     const fileInputRef = useRef(null);
     const imageInputRef = useRef(null);
     const { addToast } = useToast();                         // for 1MB attachment errors
-    const isDisabled = activeTicket?.status === 'Resuelto' || activeTicket?.status === 'Archivado';
+    const isDisabled = activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado';
     const isAgent = currentUser?.role === 'agent' || currentUser?.role === 'admin_empresa';
     const canSendInternal = isAgent;
 
@@ -358,6 +359,9 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
                 return false;
             },
         },
+        onUpdate: ({ editor }) => {
+            setHasText(editor.getText().trim().length > 0);
+        },
         editable: !isDisabled,
     });
 
@@ -391,7 +395,7 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
 
     const handleSend = useCallback(async () => {
         if (!editor || sending) return;
-        const isEmpty = isEditorEmpty();
+        const isEmpty = !hasText;
         if ((isEmpty && pendingFiles.length === 0) || isDisabled) return;
 
         setSending(true);
@@ -401,6 +405,7 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
             editor.commands.clearContent(true);
             editor.commands.focus();
             setPendingFiles([]);
+            setHasText(false);
         } catch (error) {
             console.error('Error enviando mensaje:', error);
             addToast({ message: error.message || 'Error al enviar el mensaje', type: 'error' });
@@ -467,7 +472,7 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
 
     if (!editor) return null;
 
-    const canSend = !isEditorEmpty() || pendingFiles.length > 0;
+    const canSend = hasText || pendingFiles.length > 0;
 
     return (
         <div className={`px-3 sm:px-5 py-3 sm:py-4 border-t border-border-gray transition-colors duration-200 ${!isPublic ? 'bg-amber-50/60' : 'bg-white'}`}>
@@ -596,52 +601,21 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
                     {/* Asignar a — Agent only */}
                     {isAgent && (
-                        <div ref={assignRef} className="relative">
-                            <button
-                                type="button"
-                                onClick={() => setAssignOpen(o => !o)}
-                                className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all duration-200
-                                    ${activeTicket?.assignedAgent
-                                        ? 'bg-primary/10 text-primary border border-primary/20'
-                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                    }`}
-                                title="Asignar ticket a un agente"
-                            >
-                                <span className="material-symbols-outlined text-sm select-none">person_add</span>
-                                <span className="hidden sm:inline">
-                                    {activeTicket?.assignedAgent
-                                        ? `Asignado: ${activeTicket.assignedAgent.name.split(' ')[0]}`
-                                        : 'Asignar a'
-                                    }
-                                </span>
-                                <span className="material-symbols-outlined text-xs select-none">{assignOpen ? 'expand_less' : 'expand_more'}</span>
-                            </button>
-
-                            {assignOpen && (
-                                <div className="absolute bottom-full mb-2 right-0 w-52 bg-white border border-border-gray rounded-2xl shadow-xl z-50 overflow-hidden">
-                                    <div className="px-3 py-2 border-b border-border-gray">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asignar al agente</p>
-                                    </div>
-                                    {agents.map(agent => (
-                                        <button
-                                            key={agent.id}
-                                            onClick={() => handleAssign(agent)}
-                                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition-colors text-left"
-                                        >
-                                            <div className="size-7 rounded-full bg-gradient-to-br from-primary to-primary-accent text-white flex items-center justify-center text-[10px] font-extrabold shrink-0">
-                                                {agent.initials}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-slate-800 truncate">{agent.name}</p>
-                                                <p className="text-[10px] text-slate-400">{agent.role}</p>
-                                            </div>
-                                            {activeTicket?.assignedAgent?.id === agent.id && (
-                                                <span className="material-symbols-outlined text-status-green text-sm select-none ml-auto">check</span>
-                                            )}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                        <div className={`flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all duration-200
+                            ${activeTicket?.assignedAgent
+                                ? 'bg-primary/5 text-primary border-primary/20'
+                                : 'bg-slate-100 text-slate-500 border-slate-200'
+                            }`}
+                        >
+                            <span className="material-symbols-outlined text-sm select-none">
+                                {activeTicket?.assignedAgent ? 'person' : 'person_off'}
+                            </span>
+                            <span className="hidden sm:inline">
+                                {activeTicket?.assignedAgent
+                                    ? `Asignado: ${activeTicket.assignedAgent.name.split(' ')[0]}`
+                                    : 'Sin asignar'
+                                }
+                            </span>
                         </div>
                     )}
 
@@ -696,7 +670,7 @@ function ResolvedDropdown({ ticketId, reopenTicket, archiveTicket, resolvedMenuT
                 className="flex items-center gap-1 bg-status-green/10 text-status-green border border-status-green/30 px-2 sm:px-3 py-2 rounded-lg text-sm font-bold transition-all hover:bg-status-green/20 active:scale-95"
             >
                 <span className="material-symbols-outlined text-base select-none">check_circle</span>
-                <span className="hidden sm:inline">Resuelto</span>
+                <span className="hidden sm:inline">Cerrado</span>
                 <span className="material-symbols-outlined text-sm select-none">{isOpen ? 'expand_less' : 'expand_more'}</span>
             </button>
 
@@ -734,7 +708,7 @@ export default function ChatPanel() {
         sendMessage, assignTicket, agents, currentUser,
     } = useTickets();
 
-    const isAgent = currentUser?.role === 'agent';
+    const isAgent = currentUser?.role === 'agent' || currentUser?.role === 'admin_empresa';
 
     const chatEndRef = useRef(null);
 
@@ -756,7 +730,7 @@ export default function ChatPanel() {
 
     if (!activeTicket) return null;
 
-    const isResolved = activeTicket.status === 'Resuelto';
+    const isResolved = activeTicket.status === 'Cerrado';
     const isArchived = activeTicket.status === 'Archivado';
     const isClosed = isResolved || isArchived;
 
@@ -889,3 +863,4 @@ export default function ChatPanel() {
         </section>
     );
 }
+

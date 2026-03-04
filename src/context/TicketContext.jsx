@@ -151,13 +151,13 @@ export function TicketProvider({ children, currentUser }) {
 
         let matchFilter = false;
         if (activeFilter === 'Abiertos') {
-            matchFilter = t.status !== 'Resuelto' && t.status !== 'Archivado';
+            matchFilter = t.status !== 'Cerrado' && t.status !== 'Archivado';
         } else if (activeFilter === 'Asignados') {
             // Agent only: tickets assigned specifically to the logged-in agent
             // DB: WHERE assigned_agent_id = auth.uid() mapped to profiles.agent_id
             matchFilter = t.assignedAgent?.id === currentAgentId && t.status !== 'Archivado';
         } else if (activeFilter === 'Cerrados') {
-            matchFilter = t.status === 'Resuelto';
+            matchFilter = t.status === 'Cerrado';
         } else if (activeFilter === 'Archivados') {
             matchFilter = t.status === 'Archivado';
         }
@@ -181,12 +181,12 @@ export function TicketProvider({ children, currentUser }) {
     }, []);
 
     const resolveTicket = useCallback(async () => {
-        const { error } = await supabase.from('tickets').update({ status: 'Resuelto', priority: 'Resuelto' }).eq('id', activeTicketId);
+        const { error } = await supabase.from('tickets').update({ status: 'Cerrado', priority: 'Cerrado' }).eq('id', activeTicketId);
         if (!error) fetchTickets();
     }, [activeTicketId, fetchTickets]);
 
     const reopenTicket = useCallback(async (ticketId) => {
-        const { error } = await supabase.from('tickets').update({ status: 'En Progreso', priority: 'En Progreso' }).eq('id', ticketId);
+        const { error } = await supabase.from('tickets').update({ status: 'Abierto', priority: 'En Progreso' }).eq('id', ticketId);
         if (!error) fetchTickets();
 
         setResolvedMenuTicketId(null);
@@ -451,3 +451,4 @@ export function useTickets() {
     if (!ctx) throw new Error('useTickets must be used within TicketProvider');
     return ctx;
 }
+

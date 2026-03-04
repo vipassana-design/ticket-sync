@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext';
 import { clients } from '../../data/mockData';
 
 const CHANNELS = ['Portal', 'Email', 'API', 'Chat', 'Teléfono'];
-const PRIORITIES = ['Urgente', 'En Progreso', 'Nuevo'];
+const PRIORITIES = ['Baja', 'Media', 'Alta', 'Urgente'];
 const CLIENT_IDS = Object.keys(clients);
 
 function formatBytes(bytes) {
@@ -14,12 +14,12 @@ function formatBytes(bytes) {
 }
 
 export default function NewTicketModal() {
-    const { isNewTicketModalOpen, setIsNewTicketModalOpen, addTicket } = useTickets();
+    const { isNewTicketModalOpen, setIsNewTicketModalOpen, addTicket, currentUser } = useTickets();
     const { addToast } = useToast();
     const [form, setForm] = useState({
-        clientId: CLIENT_IDS[0],
+        clientId: currentUser?.id || '',
         title: '',
-        priority: 'Nuevo',
+        priority: 'Media',
         channel: 'Portal',
         description: '',
     });
@@ -129,13 +129,11 @@ export default function NewTicketModal() {
                         <div>
                             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 block">Cliente</label>
                             <select
-                                className={field}
-                                value={form.clientId}
-                                onChange={e => setForm(p => ({ ...p, clientId: e.target.value }))}
+                                className={field + ' opacity-70 cursor-not-allowed'}
+                                value={currentUser?.id || ''}
+                                disabled
                             >
-                                {CLIENT_IDS.map(id => (
-                                    <option key={id} value={id}>{clients[id].name} — {clients[id].company}</option>
-                                ))}
+                                <option value={currentUser?.id || ''}>{currentUser?.name || 'Cargando...'} — {currentUser?.company || 'Empresa'}</option>
                             </select>
                         </div>
 
@@ -272,3 +270,4 @@ export default function NewTicketModal() {
         </div>
     );
 }
+

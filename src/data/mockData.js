@@ -136,9 +136,15 @@ export const initialTickets = [];
 
 // ─── Priority config ──────────────────────────────────────────────────────────
 export const priorityConfig = {
+    // Priority badges
     'Urgente': { bg: 'bg-red-100', text: 'text-red-600', border: 'border-l-accent-red' },
+    'Alta': { bg: 'bg-status-orange/10', text: 'text-status-orange', border: 'border-l-status-orange' },
+    'Media': { bg: 'bg-amber-100/50', text: 'text-amber-600', border: 'border-l-amber-500' },
+    'Baja': { bg: 'bg-status-green/10', text: 'text-status-green', border: 'border-l-status-green' },
+
+    // Status badges (used as fallback when Priority is matched directly or ticket.status is passed)
     'En Progreso': { bg: 'bg-status-orange/10', text: 'text-status-orange', border: 'border-l-status-orange' },
-    'Resuelto': { bg: 'bg-status-green/10', text: 'text-status-green', border: 'border-l-status-green' },
+    'Cerrado': { bg: 'bg-status-green/10', text: 'text-status-green', border: 'border-l-status-green' },
     'Nuevo': { bg: 'bg-primary/10', text: 'text-primary', border: 'border-l-primary' },
     'Archivado': { bg: 'bg-slate-100', text: 'text-slate-500', border: 'border-l-slate-300' },
 };

@@ -70,3 +70,4 @@ export default function Avatar({ avatarUrl, name = '', size = 'md', className = 
         </div>
     );
 }
+

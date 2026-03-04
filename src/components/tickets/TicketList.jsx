@@ -9,12 +9,12 @@ const clientFilters = ['Abiertos', 'Cerrados', 'Archivados'];
 // DB: SELECT count(*) GROUP BY filter_logic FROM tickets WHERE (client scoping applied)
 function useFilterCounts(scopedTickets, currentAgentId) {
     return {
-        // DB: COUNT WHERE status NOT IN ('Resuelto','Archivado') [+ client scope]
-        Abiertos: scopedTickets.filter(t => t.status !== 'Resuelto' && t.status !== 'Archivado').length,
+        // DB: COUNT WHERE status NOT IN ('Cerrado','Archivado') [+ client scope]
+        Abiertos: scopedTickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado').length,
         // DB: COUNT WHERE assigned_agent_id = currentAgentId AND status != 'Archivado'
         Asignados: scopedTickets.filter(t => t.assignedAgent?.id === currentAgentId && t.status !== 'Archivado').length,
-        // DB: COUNT WHERE status = 'Resuelto' [+ client scope]
-        Cerrados: scopedTickets.filter(t => t.status === 'Resuelto').length,
+        // DB: COUNT WHERE status = 'Cerrado' [+ client scope]
+        Cerrados: scopedTickets.filter(t => t.status === 'Cerrado').length,
         // DB: COUNT WHERE status = 'Archivado' [+ client scope]
         Archivados: scopedTickets.filter(t => t.status === 'Archivado').length,
     };
@@ -137,3 +137,4 @@ export default function TicketList() {
         </aside>
     );
 }
+

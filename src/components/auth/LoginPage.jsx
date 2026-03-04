@@ -250,3 +250,4 @@ export default function LoginPage({ onLogin, loginError = '' }) {
         </div>
     );
 }
+

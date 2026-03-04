@@ -91,3 +91,4 @@ export default function SuperAdminLayout({ children, onLogout }) {
         </div>
     );
 }
+
