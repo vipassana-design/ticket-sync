@@ -5,7 +5,7 @@ import { clients } from '../../data/mockData';
 export default function TicketCard({ ticket }) {
     const { activeTicketId, selectTicket, currentAgent, activeFilter } = useTickets();
     const isActive = ticket.id === activeTicketId;
-    const pConf = priorityConfig[ticket.priority] ?? priorityConfig['Nuevo'];
+    const pConf = priorityConfig[ticket.priority] ?? priorityConfig['Media'];
     const client = clients[ticket.clientId];
 
     // Show "Asignado a vos" badge when viewing Abiertos and this ticket is assigned to me
@@ -36,7 +36,7 @@ export default function TicketCard({ ticket }) {
                         </span>
                     )}
                     <span className={`px-2 py-0.5 ${pConf.bg} ${pConf.text} text-[10px] font-extrabold rounded uppercase tracking-wider`}>
-                        {ticket.status}
+                        {ticket.priority}
                     </span>
                 </div>
             </div>

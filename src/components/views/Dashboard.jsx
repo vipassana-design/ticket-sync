@@ -35,8 +35,9 @@ function MetricCard({ icon, value, label, color, trend }) {
 function PriorityBadge({ priority }) {
     const map = {
         'Urgente': 'bg-red-100 text-red-600',
-        'En Progreso': 'bg-orange-100 text-orange-600',
-        'Nuevo': 'bg-primary/10 text-primary',
+        'Alta': 'bg-orange-100 text-status-orange',
+        'Media': 'bg-amber-100/50 text-amber-600',
+        'Baja': 'bg-status-green/10 text-status-green',
     };
     return (
         <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${map[priority] || 'bg-slate-100 text-slate-500'}`}>
@@ -60,7 +61,7 @@ export default function Dashboard() {
     const myTickets = tickets.filter(t => t.isAssigned && t.status !== 'Cerrado' && t.status !== 'Archivado');
 
     // Sort my tickets by priority weight
-    const priorityWeight = { 'Urgente': 0, 'En Progreso': 1, 'Nuevo': 2 };
+    const priorityWeight = { 'Urgente': 0, 'Alta': 1, 'Media': 2, 'Baja': 3 };
     const sortedMyTickets = [...myTickets].sort((a, b) =>
         (priorityWeight[a.priority] ?? 3) - (priorityWeight[b.priority] ?? 3)
     );
@@ -147,16 +148,16 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {/* Quick stats */}
                         <div className="bg-white border border-border-gray rounded-2xl p-5 shadow-sm">
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribución por Estado</p>
-                            {['Urgente', 'En Progreso', 'Nuevo'].map(status => {
-                                const count = tickets.filter(t => t.status === status).length;
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Distribución por Prioridad</p>
+                            {['Urgente', 'Alta', 'Media', 'Baja'].map(priority => {
+                                const count = tickets.filter(t => t.priority === priority && t.status !== 'Archivado').length;
                                 const total = openTickets.length || 1;
                                 const pct = Math.round((count / total) * 100);
-                                const barColor = status === 'Urgente' ? 'bg-red-400' : status === 'En Progreso' ? 'bg-orange-400' : 'bg-primary';
+                                const barColor = priority === 'Urgente' ? 'bg-red-400' : priority === 'Alta' ? 'bg-orange-400' : priority === 'Media' ? 'bg-amber-400' : 'bg-status-green';
                                 return (
-                                    <div key={status} className="mb-3">
+                                    <div key={priority} className="mb-3">
                                         <div className="flex justify-between text-xs mb-1">
-                                            <span className="font-semibold text-slate-600">{status}</span>
+                                            <span className="font-semibold text-slate-600">{priority}</span>
                                             <span className="font-bold text-slate-400">{count}</span>
                                         </div>
                                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">

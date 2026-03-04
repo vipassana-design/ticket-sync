@@ -94,8 +94,8 @@ function ClientPanelContent({ activeTicket, activeClient, tickets, onClose }) {
                     <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-800">
                         <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-1">Estado</p>
                         <div className="flex items-center gap-1.5">
-                            <span className={`size-1.5 rounded-full shrink-0 ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'bg-status-green' : activeTicket?.status === 'Urgente' ? 'bg-status-orange' : 'bg-slate-400'}`} />
-                            <p className={`text-xs font-bold ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'text-status-green' : activeTicket?.status === 'Urgente' ? 'text-status-orange' : 'text-slate-300'}`}>
+                            <span className={`size-1.5 rounded-full shrink-0 ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'bg-red-500' : 'bg-status-green'}`} />
+                            <p className={`text-xs font-bold ${activeTicket?.status === 'Cerrado' || activeTicket?.status === 'Archivado' ? 'text-red-500' : 'text-status-green'}`}>
                                 {activeTicket?.status || 'Desconocido'}
                             </p>
                         </div>
@@ -123,14 +123,6 @@ function ClientPanelContent({ activeTicket, activeClient, tickets, onClose }) {
                                 <div className="min-w-0 w-full">
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">#{activeTicket.id.toString().split('-')[0]}</p>
                                     <p className="text-xs text-slate-200 leading-snug mb-2">{activeTicket.title}</p>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${activeTicket.status === 'Cerrado' || activeTicket.status === 'Archivado' ? 'bg-status-green/10 text-status-green border border-status-green/20' :
-                                            activeTicket.status === 'Urgente' ? 'bg-status-orange/10 text-status-orange border border-status-orange/20' :
-                                                'bg-slate-700 text-slate-300'
-                                            }`}>
-                                            {activeTicket.status}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         </div>

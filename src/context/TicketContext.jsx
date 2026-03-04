@@ -17,7 +17,7 @@ export function TicketProvider({ children, currentUser }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
     const [showTicketList, setShowTicketList] = useState(true);
-    const [activeView, setActiveView] = useState('tickets'); // DB: persisted in user session
+    const [activeView, setActiveViewReal] = useState('tickets'); // DB: persisted in user session
     const [resolvedMenuTicketId, setResolvedMenuTicketId] = useState(null);
 
     // ── Role & Identity ───────────────────────────────────────────────────────
@@ -169,31 +169,48 @@ export function TicketProvider({ children, currentUser }) {
     const sortedFilteredTickets = [...filteredTickets].sort((a, b) => b.rawTs - a.rawTs);
 
     // ── Actions ───────────────────────────────────────────────────────────────
-    const selectTicket = useCallback((id) => {
-        setActiveTicketId(id);
-        setShowTicketList(false);
-        setResolvedMenuTicketId(null);
+    const navigateSafe = useCallback((action) => {
+        if (chatDirtyRef.current) {
+            setPendingNavigation(() => action);
+            setDraftModalOpen(true);
+        } else {
+            action();
+        }
     }, []);
+
+    const setActiveView = useCallback((view) => {
+        navigateSafe(() => setActiveViewReal(view));
+    }, [navigateSafe]);
+
+    const selectTicket = useCallback((id) => {
+        navigateSafe(() => {
+            setActiveTicketId(id);
+            setShowTicketList(false);
+            setResolvedMenuTicketId(null);
+        });
+    }, [navigateSafe]);
 
     const closeTicket = useCallback(() => {
-        setActiveTicketId(null);
-        setShowTicketList(true);
-    }, []);
+        navigateSafe(() => {
+            setActiveTicketId(null);
+            setShowTicketList(true);
+        });
+    }, [navigateSafe]);
 
     const resolveTicket = useCallback(async () => {
-        const { error } = await supabase.from('tickets').update({ status: 'Cerrado', priority: 'Cerrado' }).eq('id', activeTicketId);
+        const { error } = await supabase.from('tickets').update({ status: 'Cerrado' }).eq('id', activeTicketId);
         if (!error) fetchTickets();
     }, [activeTicketId, fetchTickets]);
 
     const reopenTicket = useCallback(async (ticketId) => {
-        const { error } = await supabase.from('tickets').update({ status: 'Abierto', priority: 'En Progreso' }).eq('id', ticketId);
+        const { error } = await supabase.from('tickets').update({ status: 'Abierto' }).eq('id', ticketId);
         if (!error) fetchTickets();
 
         setResolvedMenuTicketId(null);
     }, [fetchTickets]);
 
     const archiveTicket = useCallback(async (ticketId) => {
-        const { error } = await supabase.from('tickets').update({ status: 'Archivado', priority: 'Archivado' }).eq('id', ticketId);
+        const { error } = await supabase.from('tickets').update({ status: 'Archivado' }).eq('id', ticketId);
         if (!error) fetchTickets();
 
         setResolvedMenuTicketId(null);
@@ -300,8 +317,8 @@ export function TicketProvider({ children, currentUser }) {
                     company_id: companyId,
                     title: ticketData.title,
                     description: ticketData.description,
-                    status: 'Nuevo',
-                    priority: 'Nuevo',
+                    status: 'Abierto',
+                    priority: ticketData.priority || 'Media',
                     channel: ticketData.channel || 'Portal',
                     sla: '48h',
                     client_id: clientId,
@@ -374,8 +391,8 @@ export function TicketProvider({ children, currentUser }) {
                 id: ticketId,
                 title: ticketRow.title,
                 summary: ticketRow.description,
-                status: 'Nuevo',
-                priority: 'Nuevo',
+                status: 'Abierto',
+                priority: ticketData.priority || 'Media',
                 channel: ticketRow.channel,
                 sla: '48h restante',
                 timestamp: 'Ahora',

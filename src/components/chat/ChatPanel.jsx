@@ -312,6 +312,7 @@ function ToolbarButton({ icon, title, isActive, onClick, disabled }) {
 
 // ─── Chat Input — TipTap WYSIWYG ──────────────────────────────────────────────
 function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUser }) {
+    const { drafts, setDrafts, chatDirtyRef, editorStateRef } = useTickets();
     const [isPublic, setIsPublic] = useState(true);
     const [assignOpen, setAssignOpen] = useState(false);
     const [showEmoji, setShowEmoji] = useState(false);
@@ -370,6 +371,29 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
         if (editor) editor.setEditable(!isDisabled);
     }, [editor, isDisabled]);
 
+    // Restore draft when ticket changes or mounts
+    useEffect(() => {
+        if (!editor) return;
+        const draft = drafts[activeTicket.id];
+        if (draft && draft.html) {
+            editor.commands.setContent(draft.html);
+            setHasText(true);
+        } else {
+            editor.commands.clearContent();
+            setHasText(false);
+        }
+        setPendingFiles(draft?.files || []);
+        chatDirtyRef.current = !!(draft?.html || draft?.files?.length > 0);
+    }, [activeTicket.id, editor]); // Only runs when ticket changes or editor mounts
+
+    // Sync dirty state
+    useEffect(() => {
+        if (!editor) return;
+        editorStateRef.current.getHTML = () => editor.getHTML();
+        editorStateRef.current.getFiles = () => pendingFiles;
+        chatDirtyRef.current = hasText || pendingFiles.length > 0;
+    }, [hasText, pendingFiles, editor, chatDirtyRef, editorStateRef]);
+
     // Update placeholder when isPublic toggles
     useEffect(() => {
         if (!editor) return;
@@ -401,18 +425,24 @@ function ChatInput({ activeTicket, sendMessage, assignTicket, agents, currentUse
         setSending(true);
         try {
             const htmlContent = isEmpty ? '' : editor.getHTML();
-            await sendMessage(htmlContent, isPublic, pendingFiles.map(f => f.rawFile));
+            await sendMessage(htmlContent, isPublic, pendingFiles.map(f => f.rawFile || f));
             editor.commands.clearContent(true);
             editor.commands.focus();
             setPendingFiles([]);
             setHasText(false);
+            setDrafts(prev => {
+                const copy = { ...prev };
+                delete copy[activeTicket.id];
+                return copy;
+            });
+            chatDirtyRef.current = false;
         } catch (error) {
             console.error('Error enviando mensaje:', error);
             addToast({ message: error.message || 'Error al enviar el mensaje', type: 'error' });
         } finally {
             setSending(false);
         }
-    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage, sending, addToast]);
+    }, [editor, isPublic, pendingFiles, isDisabled, sendMessage, sending, addToast, activeTicket.id, setDrafts, chatDirtyRef]);
 
     const handleAssign = (agent) => { assignTicket(activeTicket.id, agent); setAssignOpen(false); };
 
@@ -852,6 +882,7 @@ export default function ChatPanel() {
 
                     {/* ── Chat Input ─────────────────────────────────────────── */}
                     <ChatInput
+                        key={activeTicket.id}
                         activeTicket={activeTicket}
                         sendMessage={sendMessage}
                         assignTicket={assignTicket}

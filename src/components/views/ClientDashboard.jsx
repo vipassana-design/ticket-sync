@@ -1,4 +1,5 @@
 import { useTickets } from '../../context/TicketContext';
+import { priorityConfig } from '../../data/mockData';
 
 // ─── Client Dashboard ─────────────────────────────────────────────────────────
 // DB: SELECT * FROM tickets WHERE client_id = currentUser.clientId
@@ -10,14 +11,6 @@ export default function ClientDashboard() {
     const myTickets = tickets.filter(t => t.clientId === currentClientId);
     const activeTickets = myTickets.filter(t => t.status !== 'Cerrado' && t.status !== 'Archivado');
     const closedTickets = myTickets.filter(t => t.status === 'Cerrado' || t.status === 'Archivado');
-
-    const statusBadge = {
-        'Cerrado': { cls: 'bg-status-green/10 text-status-green', label: 'Cerrado' },
-        'Archivado': { cls: 'bg-slate-200 text-slate-500', label: 'Archivado' },
-        'Urgente': { cls: 'bg-red-100 text-red-600', label: 'Urgente' },
-        'En Progreso': { cls: 'bg-orange-100 text-orange-600', label: 'En Progreso' },
-        'Nuevo': { cls: 'bg-primary/10 text-primary', label: 'Nuevo' },
-    };
 
     return (
         <div className="flex-1 overflow-y-auto bg-slate-50/60 chat-scrollbar min-w-0">
@@ -89,13 +82,13 @@ export default function ClientDashboard() {
                             <div className="hidden sm:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3 border-b border-border-gray bg-slate-50">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Asunto</p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Canal</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Estado</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridad</p>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Acción</p>
                             </div>
 
                             <div className="divide-y divide-border-gray">
                                 {closedTickets.map(ticket => {
-                                    const badge = statusBadge[ticket.status] || statusBadge['Cerrado'];
+                                    const badge = priorityConfig[ticket.priority] || priorityConfig['Media'];
                                     return (
                                         <div
                                             key={ticket.id}
@@ -105,16 +98,16 @@ export default function ClientDashboard() {
                                             <div className="min-w-0 flex-1">
                                                 <p className="text-sm font-semibold text-slate-800 truncate">{ticket.title}</p>
                                                 <p className="text-[11px] text-slate-400 mt-0.5 sm:hidden">
-                                                    {ticket.channel} · {badge.label}
+                                                    {ticket.channel} · {ticket.priority}
                                                 </p>
                                             </div>
 
                                             {/* Channel */}
                                             <span className="hidden sm:block text-xs text-slate-500 shrink-0">{ticket.channel}</span>
 
-                                            {/* Status badge */}
-                                            <span className={`hidden sm:inline-flex shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${badge.cls}`}>
-                                                {badge.label}
+                                            {/* Priority badge */}
+                                            <span className={`hidden sm:inline-flex shrink-0 text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider ${badge.bg} ${badge.text}`}>
+                                                {ticket.priority}
                                             </span>
 
                                             {/* Reopen action */}
