@@ -27,7 +27,7 @@ export default function TicketCard({ ticket }) {
             {/* Top row: ID + timestamp / Priority badge */}
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                    #{ticket.id} • {ticket.timestamp}
+                    #{ticket.id.toString().split('-')[0]} • {ticket.timestamp}
                 </span>
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
                     {isMineBadge && (

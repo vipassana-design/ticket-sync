@@ -118,9 +118,20 @@ function ClientPanelContent({ activeTicket, activeClient, tickets, onClose }) {
                         <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-3">
                             <div className="flex items-start gap-2">
                                 <span className="material-symbols-outlined text-primary-accent text-sm select-none shrink-0 mt-0.5">confirmation_number</span>
-                                <div className="min-w-0">
-                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">#{activeTicket.id}</p>
-                                    <p className="text-xs text-slate-200 leading-snug">{activeTicket.title}</p>
+                                <div className="min-w-0 w-full">
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">#{activeTicket.id.toString().split('-')[0]}</p>
+                                    <p className="text-xs text-slate-200 leading-snug mb-2">{activeTicket.title}</p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${activeTicket.status === 'Resuelto' || activeTicket.status === 'Archivado' ? 'bg-status-green/10 text-status-green border border-status-green/20' :
+                                                activeTicket.status === 'Urgente' ? 'bg-status-orange/10 text-status-orange border border-status-orange/20' :
+                                                    'bg-slate-700 text-slate-300'
+                                            }`}>
+                                            {activeTicket.status}
+                                        </span>
+                                        <span className="text-[9px] font-bold text-slate-500 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                                            {new Date(activeTicket.rawTs).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}hs (GMT-3)
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

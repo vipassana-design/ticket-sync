@@ -171,13 +171,14 @@ function AttachmentBlock({ file, dark = false }) {
 
 // ─── Message renderers ────────────────────────────────────────────────────────
 function ClientMessage({ msg, client }) {
+    const name = msg.senderName || client?.name || 'Cliente';
+    const avatar = msg.senderAvatar || client?.avatarUrl;
     return (
         <div className="flex gap-3 max-w-[90%] sm:max-w-[85%]">
-            {/* DB: profiles.avatar_url → fallback to initials */}
-            <Avatar avatarUrl={client?.avatarUrl} name={client?.name || 'Cliente'} size="sm" className="mt-1" />
+            <Avatar avatarUrl={avatar} name={name} size="sm" className="mt-1" />
             <div className="flex flex-col gap-1.5 min-w-0">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-900 truncate">{client?.name || 'Cliente'}</span>
+                    <span className="text-xs font-bold text-slate-900 truncate">{name}</span>
                     <span className="text-[10px] text-slate-400 shrink-0">{msg.time}</span>
                 </div>
                 <div className="bg-white border border-border-gray p-3 sm:p-4 rounded-r-2xl rounded-bl-2xl shadow-sm text-slate-700 leading-relaxed">
@@ -191,14 +192,15 @@ function ClientMessage({ msg, client }) {
 }
 
 function AgentMessage({ msg, agent }) {
+    const name = msg.senderName || agent?.name || 'Agente';
+    const avatar = msg.senderAvatar || agent?.avatarUrl;
     return (
         <div className="flex gap-3 max-w-[90%] sm:max-w-[85%] self-end flex-row-reverse">
-            {/* DB: profiles.avatar_url → fallback to initials */}
-            <Avatar avatarUrl={agent?.avatarUrl} name={agent?.name || 'Agente'} size="sm" className="mt-1" />
+            <Avatar avatarUrl={avatar} name={name} size="sm" className="mt-1" />
             <div className="flex flex-col gap-1.5 items-end min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-[10px] text-slate-400 shrink-0">{msg.time}</span>
-                    <span className="text-xs font-bold text-primary-accent truncate">{agent?.name} (Soporte)</span>
+                    <span className="text-xs font-bold text-primary-accent truncate">{name} (Soporte)</span>
                 </div>
                 <div className="bg-sidebar-dark text-white p-3 sm:p-4 rounded-l-2xl rounded-br-2xl shadow-sm leading-relaxed">
                     {renderContent(msg.content)}

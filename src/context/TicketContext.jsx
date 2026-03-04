@@ -109,8 +109,9 @@ export function TicketProvider({ children, currentUser }) {
                 const mappedMsg = data.map(m => ({
                     id: m.id,
                     senderId: m.sender_id,
-                    senderType: m.profile?.role,
+                    senderType: m.profile?.role === 'client' ? 'client' : 'agent',
                     senderName: m.profile?.name,
+                    senderAvatar: m.profile?.avatar_url,
                     type: m.is_internal ? 'internal' : 'public',
                     content: m.content,
                     time: new Date(m.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
@@ -264,6 +265,8 @@ export function TicketProvider({ children, currentUser }) {
                 id: msgData.id,
                 senderId,
                 senderType,
+                senderName: currentUser?.name,
+                senderAvatar: currentUser?.avatarUrl,
                 type: senderType === 'client' ? 'public' : (isPublic ? 'public' : 'internal'),
                 content: msgData.content,
                 time: timeStr,
@@ -287,6 +290,9 @@ export function TicketProvider({ children, currentUser }) {
             const clientId = isClientRole ? currentUser.id : (ticketData.clientId || currentUser.id);
             const companyId = currentUser?.companyId;
 
+            const autoAssign = localStorage.getItem(`TicketSync:autoAssign:${companyId}`);
+            const assignedAgentId = (autoAssign && autoAssign !== '') ? autoAssign : null;
+
             // 1. Insertar ticket
             const { data: ticketRow, error: ticketError } = await supabase
                 .from('tickets')
@@ -298,7 +304,8 @@ export function TicketProvider({ children, currentUser }) {
                     priority: 'Nuevo',
                     channel: ticketData.channel || 'Portal',
                     sla: '48h',
-                    client_id: clientId
+                    client_id: clientId,
+                    assigned_agent_id: assignedAgentId
                 }])
                 .select()
                 .single();
@@ -377,8 +384,8 @@ export function TicketProvider({ children, currentUser }) {
                 commentCount: 1,
                 hasAttachment: uploadedAttachments.length > 0,
                 isEscalated: false,
-                isAssigned: false,
-                assignedAgent: null,
+                isAssigned: !!assignedAgentId,
+                assignedAgent: assignedAgentId ? { id: assignedAgentId, name: 'Agente Asignado', role: 'agent' } : null,
                 openedAt: timeStr,
                 messages: [newMsg],
             };
